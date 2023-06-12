@@ -5,7 +5,7 @@
 bool openGlIsFinished = false;
 
 void opengl();
-void* antsAction(void *args);
+void* antsAction(struct Ant *args);
 
 int main()
 {
@@ -13,7 +13,7 @@ int main()
     readArguments("arguments.txt");
     printf("SIMULATION_TIME is %.2f\n", SIMULATION_TIME);
     printf("NUMBER_OF_ANTS is %d\n", NUMBER_OF_ANTS);
-
+    srand(time(NULL));
     pthread_t opengl_thread;
     pthread_t ants[NUMBER_OF_ANTS];
 
@@ -25,20 +25,22 @@ int main()
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
-        struct Ant *ant = malloc(sizeof(struct Ant));
+        struct Ant *ant;
+        ant = malloc(sizeof(struct Ant));
         if (ant == NULL)
         {
             fprintf(stderr, "Failed to allocate memory for ant %d.\n", i);
             exit(-1);
         }
 
-        ant->id = i;
-        ant->x = 0.0;
-        ant->y = 0.0;
+        (*ant).id = i;
+        ant->x = (double)(rand() % 1000);
+        ant->y = (double)(rand() % 400);
+        ant->speed = rand() % 10 + 1;
 
         printf("Ant ID in for loop: %d\n", ant->id);
 
-        if (pthread_create(&ants[i], NULL, antsAction, (void *)&ant) != 0)
+        if (pthread_create(&ants[i], NULL, (void *)antsAction, ant) != 0)
         {
             fprintf(stderr, "Failed to create thread for ant %d.\n", i);
             exit(-1);
@@ -53,10 +55,11 @@ int main()
     return 0;
 }
 
-void* antsAction(void *args)
+void* antsAction(struct Ant *args)
 {
     struct Ant *data = (struct Ant *)args;
-    printf("Ant ID: %d\n", data->id);
+    printf("Ant ID: %d\n", args->id);
+    printf("Ant x and y %lf %lf\n", args->x, args->y);
     
     //Rami: try to get the data right to the thread.
     

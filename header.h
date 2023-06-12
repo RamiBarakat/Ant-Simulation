@@ -41,10 +41,10 @@ struct Ant{
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 
-typedef struct {
+struct Food {
     double x, y; // Position
     pthread_mutex_t mutex; // Mutex for synchronization
-} Food;
+};
 
 
 #endif
