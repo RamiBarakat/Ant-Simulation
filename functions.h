@@ -27,7 +27,9 @@ void readArguments(char* filename){
 
 
         if (strcmp(label, "SIMULATION_TIME") == 0){
-            SIMULATION_TIME = atoi(str);
+            SIMULATION_TIME = atof(str);
+        } else if (strcmp(label, "NUMBER_OF_ANTS") == 0){
+            NUMBER_OF_ANTS = atoi(str);
         } 
         // else if (strcmp(label, "RANDOM_NUMBER") == 0){
         //     RANDOM_NUMBER = atoi(str);
@@ -36,8 +38,6 @@ void readArguments(char* filename){
         // }else if(strcmp(label, "THE_LEADER_NAME") == 0){
         //     strncpy(THE_LEADER_NAME, str, sizeof(THE_LEADER_NAME));
         // }
-
-
 
     }
 

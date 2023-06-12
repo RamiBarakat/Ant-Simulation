@@ -32,19 +32,19 @@
 
 #define MAX_LENGTH 100
 
-typedef struct {
+struct Ant{
     int id;
     double x, y; // Position
     char direction[2]; // Direction vector
     int speed; // Speed of the ant
     int food_smell; // Food smell intensity
     pthread_mutex_t mutex; // Mutex for synchronization
-} ant;
+};
 
 typedef struct {
     double x, y; // Position
     pthread_mutex_t mutex; // Mutex for synchronization
-} food;
+} Food;
 
 
 #endif
