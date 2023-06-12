@@ -5,7 +5,7 @@
 bool openGlIsFinished = false;
 
 void opengl();
-void* antsAction(struct Ant *args);
+void *antsAction(struct Ant *args);
 
 int main()
 {
@@ -34,9 +34,13 @@ int main()
         }
 
         (*ant).id = i;
-        ant->x = (double)(rand() % 1000);
-        ant->y = (double)(rand() % 400);
-        ant->speed = rand() % 10 + 1;
+        ant->x = randomFloat(0, SCREEN_WIDTH);
+        ant->y = randomFloat(0, SCREEN_HEIGHT);
+        ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
+        ant->direction = randomDirection();
+
+        printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
+               ant->id, ant->x, ant->y, ant->speed, ant->direction);
 
         printf("Ant ID in for loop: %d\n", ant->id);
 
@@ -50,21 +54,19 @@ int main()
     // sleep(5);
     // openGlIsFinished = true;
 
-    while (1);
+    while (1)
+        ;
 
     return 0;
 }
 
-void* antsAction(struct Ant *args)
+void *antsAction(struct Ant *args)
 {
     struct Ant *data = (struct Ant *)args;
     printf("Ant ID: %d\n", args->id);
-    printf("Ant x and y %lf %lf\n", args->x, args->y);
-    
-    //Rami: try to get the data right to the thread.
-    
-    //free(data); 
-    
+    printf("Ant x and y %.2f %.2f\n", args->x, args->y);
+
+    // free(data);
 }
 
 void display()
@@ -113,7 +115,7 @@ void opengl()
     int c = 1;
     glutInit(&c, NULL);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(windowWidth, windowHeight);
+    glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
     glutCreateWindow("Project 3: POSIX THREADS");
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);

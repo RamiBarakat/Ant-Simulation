@@ -30,11 +30,13 @@ void readArguments(char* filename){
             SIMULATION_TIME = atof(str);
         } else if (strcmp(label, "NUMBER_OF_ANTS") == 0){
             NUMBER_OF_ANTS = atoi(str);
+        } else if (strcmp(label, "MAX_SPEED") == 0){
+            MAX_SPEED = atoi(str);
+        } else if (strcmp(label, "MIN_SPEED") == 0){
+            MIN_SPEED = atoi(str);
         } 
-        // else if (strcmp(label, "RANDOM_NUMBER") == 0){
-        //     RANDOM_NUMBER = atoi(str);
-        // }else if(strcmp(label, "THE_PRICE") == 0){
-        //     THE_PRICE = atof(str);
+
+
         // }else if(strcmp(label, "THE_LEADER_NAME") == 0){
         //     strncpy(THE_LEADER_NAME, str, sizeof(THE_LEADER_NAME));
         // }
@@ -42,6 +44,20 @@ void readArguments(char* filename){
     }
 
     fclose(file);
+}
+
+enum Direction randomDirection() {
+    int direction = rand() % 8;
+    return (enum Direction)direction;
+}
+
+float randomFloat(float min, float max) {
+    return min + ((float)rand() / RAND_MAX) * (max - min);
+}
+
+// Function to generate a random integer between min and max (inclusive)
+int randomInt(int min, int max) {
+    return min + rand() % (max - min + 1);
 }
 
 // set the text color to green

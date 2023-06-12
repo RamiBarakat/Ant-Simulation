@@ -30,19 +30,29 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-#define MAX_LENGTH 100
+enum Direction {
+    NORTH,
+    SOUTH,
+    EAST,
+    WEST,
+    NORTH_EAST,
+    NORTH_WEST,
+    SOUTH_EAST,
+    SOUTH_WEST
+};
 
 struct Ant{
     int id;
-    double x, y; // Position
-    char direction[2]; // Direction vector
+    float x, y; // Position
+    enum Direction direction;
     int speed; // Speed of the ant
     int food_smell; // Food smell intensity
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 
 struct Food {
-    double x, y; // Position
+    float x, y; // Position
+    int quantity;
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 
