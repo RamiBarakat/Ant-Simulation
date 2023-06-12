@@ -1,8 +1,5 @@
 FROM accetto/ubuntu-vnc-xfce-opengl-g3:latest
 
-
-
-
 USER root
 ENV HOME /root
 
