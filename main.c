@@ -6,6 +6,11 @@ bool openGlIsFinished = false;
 
 void opengl();
 void *antsAction(struct Ant *args);
+struct Ant **ants;
+float centerX = -0.03; // X-coordinate of the center of the circle
+float centerY = 0.18;  // Y-coordinate of the center of the circle
+float radius = 0.03;            // Radius of the circle
+int numSegments = 100;
 
 int main()
 {
@@ -14,14 +19,10 @@ int main()
     printf("SIMULATION_TIME is %.2f\n", SIMULATION_TIME);
     printf("NUMBER_OF_ANTS is %d\n", NUMBER_OF_ANTS);
     srand(time(NULL));
-    pthread_t opengl_thread;
-    pthread_t ants[NUMBER_OF_ANTS];
 
-    if (pthread_create(&opengl_thread, NULL, (void *)opengl, NULL))
-    {
-        fprintf(stderr, "Failed to create opengl thread");
-        exit(-1);
-    }
+    pthread_t opengl_thread;
+    pthread_t ants_threads[NUMBER_OF_ANTS];
+    ants = malloc(sizeof(struct Ant *) * NUMBER_OF_ANTS);
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
@@ -32,8 +33,9 @@ int main()
             fprintf(stderr, "Failed to allocate memory for ant %d.\n", i);
             exit(-1);
         }
+        ants[i] = ant;
 
-        (*ant).id = i;
+        (*ant).id = i + 1;
         ant->x = randomFloat(0, SCREEN_WIDTH);
         ant->y = randomFloat(0, SCREEN_HEIGHT);
         ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
@@ -42,13 +44,18 @@ int main()
         printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
                ant->id, ant->x, ant->y, ant->speed, ant->direction);
 
-        printf("Ant ID in for loop: %d\n", ant->id);
-
-        if (pthread_create(&ants[i], NULL, (void *)antsAction, ant) != 0)
+        if (pthread_create(&ants_threads[i], NULL, (void *)antsAction, ant) != 0)
         {
             fprintf(stderr, "Failed to create thread for ant %d.\n", i);
             exit(-1);
         }
+    }
+
+    sleep(1);
+    if (pthread_create(&opengl_thread, NULL, (void *)opengl, NULL))
+    {
+        fprintf(stderr, "Failed to create opengl thread");
+        exit(-1);
     }
 
     // sleep(5);
@@ -63,10 +70,26 @@ int main()
 void *antsAction(struct Ant *args)
 {
     struct Ant *data = (struct Ant *)args;
-    printf("Ant ID: %d\n", args->id);
-    printf("Ant x and y %.2f %.2f\n", args->x, args->y);
+    printf("Ant ID in thread: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
+           data->id, data->x, data->y, data->speed, data->direction);
 
     // free(data);
+}
+
+void drawFilledCircle()
+{
+    // Set the color to blue
+    glColor3f(0.1, 0.7, 1.0);
+    // Draw the filled circle
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < numSegments; i++)
+    {
+        float theta = 2.0 * M_PI * i / numSegments;
+        float x = centerX + radius * cos(theta);
+        float y = centerY + radius * sin(theta);
+        glVertex2f(x, y);
+    }
+    glEnd();
 }
 
 void display()
@@ -85,13 +108,12 @@ void display()
     glVertex2f(1.0, -1.0);
     glEnd();
 
-    // The text to be displayed
-    char str[50];
-    sprintf(str, "Number of Ants = %.2f", SIMULATION_TIME);
-    printf("im str %s \n", str);
-    for (int i = 0; i < strlen(str); i++)
+    for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
-        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, str[i]);
+        struct Ant *ant = ants[i];
+        glRasterPos2f(ant->x, ant->y);
+        drawFilledCircle();
+        printf("Ant %d - Position: (%f, %f)\n", ant->id, ant->x, ant->y);
     }
 
     glFlush();
@@ -112,6 +134,12 @@ void update(int value)
 
 void opengl()
 {
+    printf("Hi im in opengl\n");
+    for (int i = 0; i < NUMBER_OF_ANTS; i++)
+    {
+        struct Ant *ant = ants[i];
+        printf("OpenGL Ant ID: %d\n", ant->id);
+    }
     int c = 1;
     glutInit(&c, NULL);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
