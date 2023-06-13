@@ -7,10 +7,8 @@ bool openGlIsFinished = false;
 void opengl();
 void *antsAction(struct Ant *args);
 struct Ant **ants;
-float centerX = -0.03; // X-coordinate of the center of the circle
-float centerY = 0.18;  // Y-coordinate of the center of the circle
-float radius = 0.03;            // Radius of the circle
-int numSegments = 100;
+float radius = 0.02; // Radius of the circle
+int numSegments = 200;
 
 int main()
 {
@@ -36,8 +34,8 @@ int main()
         ants[i] = ant;
 
         (*ant).id = i + 1;
-        ant->x = randomFloat(0, SCREEN_WIDTH);
-        ant->y = randomFloat(0, SCREEN_HEIGHT);
+        ant->x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
+        ant->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
         ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
         ant->direction = randomDirection();
 
@@ -76,7 +74,7 @@ void *antsAction(struct Ant *args)
     // free(data);
 }
 
-void drawFilledCircle()
+void drawFilledCircle(float centerX, float centerY)
 {
     // Set the color to blue
     glColor3f(0.1, 0.7, 1.0);
@@ -111,8 +109,8 @@ void display()
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
         struct Ant *ant = ants[i];
-        glRasterPos2f(ant->x, ant->y);
-        drawFilledCircle();
+        glVertex2f(ant->x, ant->y);
+        drawFilledCircle(ant->x, ant->y);
         printf("Ant %d - Position: (%f, %f)\n", ant->id, ant->x, ant->y);
     }
 
@@ -128,8 +126,97 @@ void reshape(int width, int height)
     glMatrixMode(GL_MODELVIEW);
 }
 
+float getAngle(int direction)
+{
+    float angle;
+    switch (direction)
+    {
+    case NORTH:
+        angle = M_PI / 2;
+        break;
+    case SOUTH:
+        angle = 3 * M_PI / 2;
+        break;
+    case EAST:
+        angle = 0;
+        break;
+    case WEST:
+        angle = M_PI;
+        break;
+    case NORTH_EAST:
+        angle = M_PI / 4;
+        break;
+    case NORTH_WEST:
+        angle = 3 * M_PI / 4;
+        break;
+    case SOUTH_EAST:
+        angle = 7 * M_PI / 4;
+        break;
+    case SOUTH_WEST:
+        angle = 5 * M_PI / 4;
+        break;
+    default:
+        break;
+    }
+    return angle;
+}
+
+enum Direction getNewDirection(enum Direction direction)
+{
+    enum Direction newDirection;
+    switch (direction)
+    {
+    case NORTH:
+        newDirection = (randomInt(0, 1) == 0) ? SOUTH_WEST : SOUTH_EAST;
+        break;
+    case SOUTH:
+        newDirection = (randomInt(0, 1) == 0) ? NORTH_WEST : NORTH_EAST;
+        break;
+    case EAST:
+        newDirection = (randomInt(0, 1) == 0) ? NORTH_WEST : SOUTH_WEST;
+        break;
+    case WEST:
+        newDirection = (randomInt(0, 1) == 0) ? NORTH_EAST : SOUTH_EAST;
+        break;
+    case NORTH_EAST:
+        newDirection = (randomInt(0, 1) == 0) ? SOUTH_WEST : WEST;
+        break;
+    case NORTH_WEST:
+        newDirection = (randomInt(0, 1) == 0) ? SOUTH_EAST : EAST;
+        break;
+    case SOUTH_EAST:
+        newDirection = (randomInt(0, 1) == 0) ? NORTH_WEST : WEST;
+        break;
+    case SOUTH_WEST:
+        newDirection = (randomInt(0, 1) == 0) ? NORTH_EAST : EAST;
+        break;
+    }
+
+    return newDirection;
+}
+
 void update(int value)
 {
+
+    for (int i = 0; i < NUMBER_OF_ANTS; i++)
+    {
+        struct Ant *ant = ants[i];
+        float angle = getAngle(ant->direction);
+
+        double dx = 0.001 * ant->speed * cos(angle);
+        double dy = 0.001 * ant->speed * sin(angle);
+
+        // Update the ant's position
+        ant->x += dx;
+        ant->y += dy;
+        if (ant->x < -0.9 || ant->x > 0.9 || ant->y < -0.9 || ant->y > 0.9)
+        {
+            ant->direction = getNewDirection(ant->direction);
+        }
+    }
+
+    glutPostRedisplay();
+    glutTimerFunc(16, update, 0);
 }
 
 void opengl()

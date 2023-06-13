@@ -1,10 +1,11 @@
 /*
 Ants
+[0,45,90,135,180,225,270,315,360]
 
-1) A user-defined number of ants are created when the simulation starts (e.g. 100 ants).
-2) randomly located on the screen and walk in random directions and random speeds
-3) Directions: North (N), South (S), East(E), West (W), North-East (NE), North-West (NW), South-East (SE), South-West(SW)
-4) The speed range [1. . . 10].
+ 1) A user-defined number of ants are created when the simulation starts (e.g. 100 ants).
+ 2) randomly located on the screen and walk in random directions and random speeds
+ 3) Directions: North (N), South (S), East(E), West (W), North-East (NE), North-West (NW), South-East (SE), South-West(SW)
+ 4) The speed range [1. . . 10].
 5) ant hits the limit window, it continues walking with the same speed but with an additional 45◦ angle either CW or CCW (random)
 6) ant can smell the presence of food if the food is placed anywhere within a user-defined distance from the ant
 7) Once it smells the presence of food, it releases a pheromone
