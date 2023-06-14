@@ -109,11 +109,24 @@ void *antsAction(struct Ant *args)
             if (distance <= DISTANCE_ANT_FOOD)
             {
                 ant->phermone += 10;
-                printf("distance is %f\n", distance);
-                printf("Hi im near\n");
+                // printf("distance is %f\n", distance);
+                // printf("Hi im near\n");
             }
         }
 
+        for (int i = 0; i < NUMBER_OF_ANTS; i++)
+        {
+            struct Ant *ant1 = ants[i];
+            if (ant1 != ant)
+            {
+                float distance = calculateDistance(ant->x, ant->y, ant1->x, ant1->y);
+                if (distance <= DISTANCE_ANT_ANT)
+                {
+
+                    printf("Hi im near an ANTTT\n");
+                }
+            }
+        }
     }
 
     // free(data);
