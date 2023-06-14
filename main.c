@@ -108,7 +108,6 @@ void *antsAction(struct Ant *args)
             float distance = calculateDistance(ant->x, ant->y, food->x, food->y);
 
             if (distance < 0.1)
-
             { 
                 pthread_mutex_lock(&ant->mutex);
                 ant->x = food->x;
@@ -133,8 +132,21 @@ void *antsAction(struct Ant *args)
             } 
             
             
-        }
+        
 
+        for (int i = 0; i < NUMBER_OF_ANTS; i++)
+        {
+            struct Ant *ant1 = ants[i];
+            if (ant1 != ant)
+            {
+                float distance = calculateDistance(ant->x, ant->y, ant1->x, ant1->y);
+                if (distance <= DISTANCE_ANT_ANT)
+                {
+
+                    printf("Hi im near an ANTTT\n");
+                }
+            }
+        }
     }
 
     // free(data);

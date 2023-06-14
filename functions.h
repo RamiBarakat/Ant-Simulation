@@ -38,6 +38,8 @@ void readArguments(char* filename){
             FOOD_ADD_TIME = atoi(str);
         }else if (strcmp(label, "DISTANCE_ANT_FOOD") == 0){
             DISTANCE_ANT_FOOD = atof(str);
+        }else if (strcmp(label, "DISTANCE_ANT_ANT") == 0){
+            DISTANCE_ANT_ANT = atof(str);
         } 
 
 
