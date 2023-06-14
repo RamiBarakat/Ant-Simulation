@@ -97,8 +97,8 @@ int main()
 void *antsAction(struct Ant *args)
 {
     struct Ant *ant = (struct Ant *)args;
-    printf("Ant ID in thread: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
-           ant->id, ant->x, ant->y, ant->speed, ant->direction);
+    //printf("Ant ID in thread: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
+         //  ant->id, ant->x, ant->y, ant->speed, ant->direction);
 
     while (1)
     {
@@ -106,12 +106,33 @@ void *antsAction(struct Ant *args)
         {
             struct Food *food = foods[i];
             float distance = calculateDistance(ant->x, ant->y, food->x, food->y);
-            if (distance <= DISTANCE_ANT_FOOD)
+
+            if (distance < 0.1)
+
+            { 
+                pthread_mutex_lock(&ant->mutex);
+                ant->x = food->x;
+                ant->y = food->y;
+                pthread_mutex_unlock(&ant->mutex);
+            }
+            else if (distance <= DISTANCE_ANT_FOOD)
             {
                 ant->phermone += 10;
                 printf("distance is %f\n", distance);
                 printf("Hi im near\n");
-            }
+                pthread_mutex_lock(&ant->mutex);
+                float dx = food->x - ant->x;
+                float dy = food->y - ant->y;
+                double angle = atan2(dy, dx);
+
+                ant->x += (ant->speed * cos(angle) * 0.0000005);
+                ant->y += (ant->speed * sin(angle) * 0.0000005);   
+                 printf("Ant ID in thread after thershold: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
+                 ant->id, ant->x, ant->y, ant->speed, ant->direction);
+                 pthread_mutex_unlock(&ant->mutex);
+            } 
+            
+            
         }
 
     }
@@ -200,7 +221,7 @@ void update(int value)
 
         float dx = 0.001 * ant->speed * cos(radian);
         float dy = 0.001 * ant->speed * sin(radian);
-
+        pthread_mutex_lock(&ant->mutex);
         // Update the ant's position
         ant->x += dx;
         ant->y += dy;
@@ -208,13 +229,15 @@ void update(int value)
         {
             if (!ant->flag)
             {
-                printf("hiiiiiiiiiii\n");
+                // printf("hiiiiiiiiiii\n");
                 // ant->direction += (rand() % 2 == 0) ? 135 : -135;
                 ant->direction += 135;
                 ant->direction = ant->direction % 360;
                 ant->flag = 1;
             }
         }
+        pthread_mutex_unlock(&ant->mutex);
+
     }
 
     glutPostRedisplay();
