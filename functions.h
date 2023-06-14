@@ -46,9 +46,9 @@ void readArguments(char* filename){
     fclose(file);
 }
 
-enum Direction randomDirection() {
-    int direction = rand() % 8;
-    return (enum Direction)direction;
+int randomDirection() {
+    int index = rand() % 8;
+    return directions[index];
 }
 
 float randomFloat(float min, float max) {

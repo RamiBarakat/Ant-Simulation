@@ -30,23 +30,13 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-enum Direction {
-    NORTH,
-    SOUTH,
-    EAST,
-    WEST,
-    NORTH_EAST,
-    NORTH_WEST,
-    SOUTH_EAST,
-    SOUTH_WEST
-};
-
 struct Ant{
     int id;
     float x, y; // Position
-    enum Direction direction;
+    int direction;
     int speed; // Speed of the ant
     int food_smell; // Food smell intensity
+    int flag;
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 

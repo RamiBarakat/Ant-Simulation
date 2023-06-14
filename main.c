@@ -38,6 +38,7 @@ int main()
         ant->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
         ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
         ant->direction = randomDirection();
+        ant->flag = 0;
 
         printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
                ant->id, ant->x, ant->y, ant->speed, ant->direction);
@@ -112,6 +113,7 @@ void display()
         glVertex2f(ant->x, ant->y);
         drawFilledCircle(ant->x, ant->y);
         printf("Ant %d - Position: (%f, %f)\n", ant->id, ant->x, ant->y);
+        // printf("Ant %d - Position: (%d)\n", ant->id, ant->direction);
     }
 
     glFlush();
@@ -126,92 +128,35 @@ void reshape(int width, int height)
     glMatrixMode(GL_MODELVIEW);
 }
 
-float getAngle(int direction)
-{
-    float angle;
-    switch (direction)
-    {
-    case NORTH:
-        angle = M_PI / 2;
-        break;
-    case SOUTH:
-        angle = 3 * M_PI / 2;
-        break;
-    case EAST:
-        angle = 0;
-        break;
-    case WEST:
-        angle = M_PI;
-        break;
-    case NORTH_EAST:
-        angle = M_PI / 4;
-        break;
-    case NORTH_WEST:
-        angle = 3 * M_PI / 4;
-        break;
-    case SOUTH_EAST:
-        angle = 7 * M_PI / 4;
-        break;
-    case SOUTH_WEST:
-        angle = 5 * M_PI / 4;
-        break;
-    default:
-        break;
-    }
-    return angle;
-}
-
-enum Direction getNewDirection(enum Direction direction)
-{
-    enum Direction newDirection;
-    switch (direction)
-    {
-    case NORTH:
-        newDirection = (randomInt(0, 1) == 0) ? SOUTH_WEST : SOUTH_EAST;
-        break;
-    case SOUTH:
-        newDirection = (randomInt(0, 1) == 0) ? NORTH_WEST : NORTH_EAST;
-        break;
-    case EAST:
-        newDirection = (randomInt(0, 1) == 0) ? NORTH_WEST : SOUTH_WEST;
-        break;
-    case WEST:
-        newDirection = (randomInt(0, 1) == 0) ? NORTH_EAST : SOUTH_EAST;
-        break;
-    case NORTH_EAST:
-        newDirection = (randomInt(0, 1) == 0) ? SOUTH_WEST : WEST;
-        break;
-    case NORTH_WEST:
-        newDirection = (randomInt(0, 1) == 0) ? SOUTH_EAST : EAST;
-        break;
-    case SOUTH_EAST:
-        newDirection = (randomInt(0, 1) == 0) ? NORTH_WEST : WEST;
-        break;
-    case SOUTH_WEST:
-        newDirection = (randomInt(0, 1) == 0) ? NORTH_EAST : EAST;
-        break;
-    }
-
-    return newDirection;
-}
-
 void update(int value)
 {
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
         struct Ant *ant = ants[i];
-        float angle = getAngle(ant->direction);
 
-        double dx = 0.001 * ant->speed * cos(angle);
-        double dy = 0.001 * ant->speed * sin(angle);
+        if (!(ant->x < -1 || ant->x > 1 || ant->y < -1 || ant->y > 1))
+        {
+            ant->flag = 0;
+        }
+        float radian = (ant->direction) * M_PI / 180.0; // Convert angle to radians
+
+        float dx = 0.001 * ant->speed * cos(radian);
+        float dy = 0.001 * ant->speed * sin(radian);
 
         // Update the ant's position
         ant->x += dx;
         ant->y += dy;
-        if (ant->x < -0.9 || ant->x > 0.9 || ant->y < -0.9 || ant->y > 0.9)
+        if (ant->x < -1 || ant->x > 1 || ant->y < -1 || ant->y > 1)
         {
-            ant->direction = getNewDirection(ant->direction);
+            if (!ant->flag)
+            {
+                printf("hiiiiiiiiiii\n");
+                //ant->direction += (rand() % 2 == 0) ? 135 : -135;
+                ant->direction += 135;
+                ant->direction = ant->direction % 360;
+                ant->flag = 1;
+            }
         }
     }
 
