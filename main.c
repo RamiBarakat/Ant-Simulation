@@ -6,9 +6,13 @@ bool openGlIsFinished = false;
 
 void opengl();
 void *antsAction(struct Ant *args);
+void *foodCreation(void *arg);
 struct Ant **ants;
+struct Food **foods;
 float radius = 0.02; // Radius of the circle
 int numSegments = 200;
+int NUMBER_OF_FOOD;
+int food_counter = 0;
 
 int main()
 {
@@ -18,9 +22,14 @@ int main()
     printf("NUMBER_OF_ANTS is %d\n", NUMBER_OF_ANTS);
     srand(time(NULL));
 
+    NUMBER_OF_FOOD = (SIMULATION_TIME * 60) / FOOD_ADD_TIME;
+
     pthread_t opengl_thread;
     pthread_t ants_threads[NUMBER_OF_ANTS];
+    pthread_t foods_threads[NUMBER_OF_FOOD];
+
     ants = malloc(sizeof(struct Ant *) * NUMBER_OF_ANTS);
+    foods = malloc(sizeof(struct Food *) * NUMBER_OF_FOOD);
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
@@ -38,6 +47,7 @@ int main()
         ant->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
         ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
         ant->direction = randomDirection();
+        ant->phermone = 0;
         ant->flag = 0;
 
         printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
@@ -57,25 +67,63 @@ int main()
         exit(-1);
     }
 
+    while (1)
+    {
+        // Create new food
+        struct Food *food = malloc(sizeof(struct Food));
+        food->id = food_counter + 1;
+        food->x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
+        food->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
+        food->quantity = 100;
+        pthread_mutex_init(&food->mutex, NULL);
+
+        foods[food_counter] = food;
+
+        if (pthread_create(&foods_threads[food_counter], NULL, (void *)foodCreation, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to create thread for ant %d.\n", food_counter);
+            exit(-1);
+        }
+        food_counter++;
+        sleep(FOOD_ADD_TIME);
+    }
+
     // sleep(5);
     // openGlIsFinished = true;
-
-    while (1)
-        ;
 
     return 0;
 }
 
 void *antsAction(struct Ant *args)
 {
-    struct Ant *data = (struct Ant *)args;
+    struct Ant *ant = (struct Ant *)args;
     printf("Ant ID in thread: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
-           data->id, data->x, data->y, data->speed, data->direction);
+           ant->id, ant->x, ant->y, ant->speed, ant->direction);
+
+    while (1)
+    {
+        for (int i = 0; i < food_counter; i++)
+        {
+            struct Food *food = foods[i];
+            float distance = calculateDistance(ant->x, ant->y, food->x, food->y);
+            if (distance <= DISTANCE_ANT_FOOD)
+            {
+                ant->phermone += 10;
+                printf("distance is %f\n", distance);
+                printf("Hi im near\n");
+            }
+        }
+
+    }
 
     // free(data);
 }
 
-void drawFilledCircle(float centerX, float centerY)
+void *foodCreation(void *arg)
+{
+}
+
+void drawFilledCircle(float centerX, float centerY, float radius)
 {
     // Set the color to blue
     glColor3f(0.1, 0.7, 1.0);
@@ -111,8 +159,17 @@ void display()
     {
         struct Ant *ant = ants[i];
         glVertex2f(ant->x, ant->y);
-        drawFilledCircle(ant->x, ant->y);
-        printf("Ant %d - Position: (%f, %f)\n", ant->id, ant->x, ant->y);
+        drawFilledCircle(ant->x, ant->y, 0.02);
+        // printf("Ant %d - Position: (%f, %f)\n", ant->id, ant->x, ant->y);
+        //  printf("Ant %d - Position: (%d)\n", ant->id, ant->direction);
+    }
+
+    for (int i = 0; i < food_counter; i++)
+    {
+        struct Food *food = foods[i];
+        glVertex2f(food->x, food->y);
+        drawFilledCircle(food->x, food->y, 0.04);
+        // printf("Food %d - Position: (%f, %f)\n", food->id, food->x, food->y);
         // printf("Ant %d - Position: (%d)\n", ant->id, ant->direction);
     }
 
@@ -152,7 +209,7 @@ void update(int value)
             if (!ant->flag)
             {
                 printf("hiiiiiiiiiii\n");
-                //ant->direction += (rand() % 2 == 0) ? 135 : -135;
+                // ant->direction += (rand() % 2 == 0) ? 135 : -135;
                 ant->direction += 135;
                 ant->direction = ant->direction % 360;
                 ant->flag = 1;

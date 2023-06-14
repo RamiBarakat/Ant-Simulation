@@ -8,6 +8,8 @@ float SIMULATION_TIME;
 int NUMBER_OF_ANTS;
 int MAX_SPEED;
 int MIN_SPEED;
+int FOOD_ADD_TIME;
+float DISTANCE_ANT_FOOD;
 
 int directions[] = {0,45,90,135,180,225,270,315,360};
 

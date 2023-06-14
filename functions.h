@@ -34,7 +34,14 @@ void readArguments(char* filename){
             MAX_SPEED = atoi(str);
         } else if (strcmp(label, "MIN_SPEED") == 0){
             MIN_SPEED = atoi(str);
+        }else if (strcmp(label, "FOOD_ADD_TIME") == 0){
+            FOOD_ADD_TIME = atoi(str);
+        }else if (strcmp(label, "DISTANCE_ANT_FOOD") == 0){
+            DISTANCE_ANT_FOOD = atof(str);
         } 
+
+
+        
 
 
         // }else if(strcmp(label, "THE_LEADER_NAME") == 0){
@@ -44,6 +51,10 @@ void readArguments(char* filename){
     }
 
     fclose(file);
+}
+
+float calculateDistance(float x1, float y1, float x2, float y2) {
+    return sqrt(pow(x2 - x1, 2) + pow(y2 - y1, 2));
 }
 
 int randomDirection() {
