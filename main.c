@@ -103,6 +103,24 @@ int main()
         food_counter++;
         sleep(FOOD_ADD_TIME);
 
+        if (food_counter == NUMBER_OF_FOOD)
+        {
+
+            for (int i = 0; i < NUMBER_OF_ANTS; i++)
+            {
+                pthread_cancel(ants_threads[i]);
+            }
+
+            for (int i = 0; i < NUMBER_OF_FOOD; i++)
+            {
+                pthread_cancel(foods_threads[i]);
+            }
+            free(foods);
+            free(ants);
+            pthread_cancel(opengl_thread);
+            break;
+        }
+
     }
 
     // sleep(5);
