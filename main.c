@@ -111,12 +111,8 @@ int main()
     return 0;
 }
 
-struct Food *closestFood = NULL;
-float closestDistance = 0.0;
-
 void *antsAction(struct Ant *ant)
 {
-    printf("HI\n");
     while (1)
     {
         moveAnt(ant);
@@ -208,7 +204,7 @@ void *foodCreation(void *arg)
 
 void deleteThreads()
 {
-    
+
 }
 
 void initializeCircleValues()
