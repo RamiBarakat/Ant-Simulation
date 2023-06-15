@@ -32,7 +32,7 @@
 
 struct Ant{
     int id;
-    float x, y; // Position
+    double x, y; // Position
     int direction;
     int speed; // Speed of the ant
     int phermone; // Food smell intensity
