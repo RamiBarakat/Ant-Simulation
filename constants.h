@@ -2,7 +2,7 @@
 #define __CONSTANTS__
 
 const int SCREEN_WIDTH = 1000;
-const int SCREEN_HEIGHT = 400;
+const int SCREEN_HEIGHT = 1000;
 
 float SIMULATION_TIME;
 int NUMBER_OF_ANTS;
