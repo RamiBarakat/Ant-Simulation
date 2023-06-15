@@ -14,7 +14,7 @@ int numSegments = 200;
 int NUMBER_OF_FOOD;
 int food_counter = 0;
 void moveAnt(struct Ant *ant);
-float speed = 0.0000005;
+float speed = 0.00000001;
 
 int main()
 {
@@ -89,24 +89,24 @@ int main()
         food_counter++;
         sleep(FOOD_ADD_TIME);
 
-        if (food_counter == 3)
-        {
-            sleep(5);
+        // if (food_counter == 3)
+        // {
+        //     sleep(5);
 
-            for (int i = 0; i < NUMBER_OF_ANTS; i++)
-            {
-                pthread_cancel(ants_threads[i]);
-            }
+        //     for (int i = 0; i < NUMBER_OF_ANTS; i++)
+        //     {
+        //         pthread_cancel(ants_threads[i]);
+        //     }
 
-            for (int i = 0; i < NUMBER_OF_FOOD; i++)
-            {
-                pthread_cancel(foods_threads[i]);
-            }
-            free(foods);
-            free(ants);
-            pthread_cancel(opengl_thread);
-            break;
-        }
+        //     for (int i = 0; i < NUMBER_OF_FOOD; i++)
+        //     {
+        //         pthread_cancel(foods_threads[i]);
+        //     }
+        //     free(foods);
+        //     free(ants);
+        //     pthread_cancel(opengl_thread);
+        //     break;
+        // }
     }
 
     // sleep(5);
@@ -115,15 +115,13 @@ int main()
     return 0;
 }
 
-void *antsAction(struct Ant *args)
+void *antsAction(struct Ant *ant)
 {
-    struct Ant *ant = (struct Ant *)args;
-    // printf("Ant ID in thread: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
-    //   ant->id, ant->x, ant->y, ant->speed, ant->direction);
-
+    printf("HI\n");
     while (1)
     {
         moveAnt(ant);
+
         for (int i = 0; i < food_counter; i++)
         {
             struct Food *food = foods[i];
@@ -131,51 +129,38 @@ void *antsAction(struct Ant *args)
 
             if (distance <= DISTANCE_ANT_FOOD)
             {
-                ant->phermone += 10;
-                while (distance > 0.1)
-                {
-                    printf("distance is %f\n", distance);
-                    double dx = food->x - ant->x;
-                    double dy = food->y - ant->y;
-                    double angle = atan2(dy, dx);
-                    ant->direction = angle * (180.0 / M_PI);
+                float pheromoneAmount = 1.0 / distance;
+                ant->phermone += pheromoneAmount;
 
-                    ant->x += (cos(angle) * ant->speed * speed);
-                    ant->y += (sin(angle) * ant->speed * speed);
-                    distance = calculateDistance(ant->x, ant->y, food->x, food->y);
-                }
-                sleep(2);
+                double dx = food->x - ant->x;
+                double dy = food->y - ant->y;
+                double angle = atan2(dy, dx);
+                ant->direction = angle * (180.0 / M_PI);
 
-                // ant->phermone += 10;
-                printf("Ant ID in thread after thershold: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
-                       ant->id, ant->x, ant->y, ant->speed, ant->direction);
+                ant->x += cos(angle) * ant->speed * speed;
+                ant->y += sin(angle) * ant->speed * speed;
+
+                ant->phermone = 0;
             }
         }
 
-        // for (int i = 0; i < NUMBER_OF_ANTS; i++)
-        // {
-        //     struct Ant *ant1 = ants[i];
+        for (int i = 0; i < NUMBER_OF_ANTS; i++)
+        {
+            if (i + 1 == ant->id)
+                continue;
 
-        //     float distance = calculateDistance(ant->x, ant->y, ant1->x, ant1->y);
-        //     if (distance <= DISTANCE_ANT_ANT && distance != 0)
-        //     {
-        //         while (distance > 0.1)
-        //         {
-        //             double dx = ant1->x - ant->x;
-        //             double dy = ant1->y - ant->y;
-        //             double angle = atan2(dy, dx);
-
-        //             ant->x += (cos(angle) * ant->speed * speed);
-        //             ant->y += (sin(angle) * ant->speed * speed);
-        //             distance = calculateDistance(ant->x, ant->y, ant1->x, ant1->y);
-        //         }
-
-        //         printf("Hi im near an ANTTT\n");
-        //     }
-        // }
+            float distance = calculateDistance(ant->x, ant->y, ants[i]->x, ants[i]->y);
+            if (distance <= DISTANCE_ANT_ANT && ants[i]->phermone > PHERMONE_MIN)
+            {
+                double dx = ants[i]->x - ant->x;
+                double dy = ants[i]->y - ant->y;
+                double angle = atan2(dy, dx);
+                ant->direction = angle * (180.0 / M_PI);
+                ant->x += cos(angle) * ant->speed * speed;
+                ant->y += sin(angle) * ant->speed * speed;
+            }
+        }
     }
-
-    // free(data);
 }
 
 void moveAnt(struct Ant *ant)
@@ -284,11 +269,6 @@ void update(int value)
 void opengl()
 {
     printf("Hi im in opengl\n");
-    for (int i = 0; i < NUMBER_OF_ANTS; i++)
-    {
-        struct Ant *ant = ants[i];
-        printf("OpenGL Ant ID: %d\n", ant->id);
-    }
     int c = 1;
     glutInit(&c, NULL);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);

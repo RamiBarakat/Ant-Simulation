@@ -35,7 +35,7 @@ struct Ant{
     double x, y; // Position
     int direction;
     int speed; // Speed of the ant
-    int phermone; // Food smell intensity
+    float phermone; // Food smell intensity
     int flag;
     pthread_mutex_t mutex; // Mutex for synchronization
 };
@@ -44,6 +44,7 @@ struct Food {
     int id;
     float x, y; // Position
     int quantity;
+    float phermone;
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 

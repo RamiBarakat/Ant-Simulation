@@ -11,6 +11,7 @@ int MIN_SPEED;
 int FOOD_ADD_TIME;
 float DISTANCE_ANT_FOOD;
 float DISTANCE_ANT_ANT;
+float PHERMONE_MIN = 1.5;
 
 int directions[] = {0,45,90,135,180,225,270,315,360};
 
