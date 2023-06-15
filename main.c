@@ -23,6 +23,8 @@ const int numSegments = 100;
 float *cosValues;
 float *sinValues;
 
+float plateRadius = 0.1;
+
 int main()
 {
 
@@ -57,7 +59,7 @@ int main()
         (*ant).id = i + 1;
         ant->x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
         ant->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
-        ant->speed = randomInt(MIN_SPEED, MAX_SPEED)/1.5;
+        ant->speed = randomInt(MIN_SPEED, MAX_SPEED) / 1.5;
         ant->direction = randomDirection();
         ant->phermone = 0;
         pthread_mutex_init(&ant->mutex, NULL);
@@ -101,24 +103,6 @@ int main()
         food_counter++;
         sleep(FOOD_ADD_TIME);
 
-        // if (food_counter == 3)
-        // {
-        //     sleep(5);
-
-        //     for (int i = 0; i < NUMBER_OF_ANTS; i++)
-        //     {
-        //         pthread_cancel(ants_threads[i]);
-        //     }
-
-        //     for (int i = 0; i < NUMBER_OF_FOOD; i++)
-        //     {
-        //         pthread_cancel(foods_threads[i]);
-        //     }
-        //     free(foods);
-        //     free(ants);
-        //     pthread_cancel(opengl_thread);
-        //     break;
-        // }
     }
 
     // sleep(5);
@@ -169,12 +153,12 @@ void *antsAction(struct Ant *ant)
 
             ant->phermone = 0;
 
-            if (distance < 0.05 && food->quantity > 0)
+            if (distance < (0.05 + plateRadius) && food->quantity > 0)
             {
                 pthread_mutex_lock(&food->mutex);
                 ant->speed = 0;
-                food->quantity -= 5;
                 sleep(1);
+                food->quantity -= 5;
                 ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
                 pthread_mutex_unlock(&food->mutex);
             }
@@ -220,20 +204,11 @@ void moveAnt(struct Ant *ant)
 
 void *foodCreation(void *arg)
 {
-    // while(1){
-
-    //     if (food->occupied)
-    //     {
-    //         food->quantity -= 0.01;
-
-    //     }
-
-    //     sleep(1);
-    // }
 }
 
 void deleteThreads()
 {
+    
 }
 
 void initializeCircleValues()
@@ -263,6 +238,110 @@ void drawFilledCircle(float centerX, float centerY, float radius)
     glEnd();
 }
 
+void drawPlate(float x, float y, float radius, int quantity, float scaleFactor)
+{
+    glPushMatrix();
+    glTranslatef(x, y, 0.0);                 // Translate the plate
+    glScalef(scaleFactor, scaleFactor, 1.0); // Scale the plate
+
+    // Set the plate color
+    glColor3f(0.95, 0.95, 0.95); // Light Gray
+
+    // Draw the plate
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < 360; i++)
+    {
+        float angle = i * PI / 180.0;
+        float px = radius * cos(angle);
+        float py = radius * sin(angle);
+        glVertex2f(px, py);
+    }
+    glEnd();
+
+    // Set the food color
+    glColor3f(0.3, 0.9, 0.3); // Light Green
+
+    // Calculate the angle between each food item
+    float angleIncrement = 360.0 / quantity;
+
+    // Draw the food items
+    for (int i = 0; i < quantity; i++)
+    {
+        float angle = i * angleIncrement * PI / 180.0;
+        float fx = (radius * 0.8) * cos(angle);
+        float fy = (radius * 0.8) * sin(angle);
+
+        // Draw a small circle as a food item
+        glBegin(GL_POLYGON);
+        for (int j = 0; j < 360; j++)
+        {
+            float angle2 = j * PI / 180.0;
+            float px = fx + 0.015 * cos(angle2);
+            float py = fy + 0.015 * sin(angle2);
+            glVertex2f(px, py);
+        }
+        glEnd();
+    }
+
+    glPopMatrix();
+}
+
+void drawRectangle(float x, float y, float width, float height)
+{
+    glBegin(GL_POLYGON);
+    glVertex2f(x, y);
+    glVertex2f(x + width, y);
+    glVertex2f(x + width, y + height);
+    glVertex2f(x, y + height);
+    glEnd();
+}
+
+void drawCircle(float x, float y, float radius)
+{
+    int numSegments = 100;
+    float angle;
+
+    glBegin(GL_POLYGON);
+    for (int i = 0; i < numSegments; i++)
+    {
+        angle = 2.0 * M_PI * i / numSegments;
+        glVertex2f(x + radius * cos(angle), y + radius * sin(angle));
+    }
+    glEnd();
+}
+
+void drawAnt(float x, float y, float rotateAngle, float scaleFactor)
+{
+    glPushMatrix();
+    glTranslatef(x, y, 0.0);                 // Translate the ant
+    glRotatef(rotateAngle, 0.0, 0.0, 1.0);   // Rotate the ant
+    glScalef(scaleFactor, scaleFactor, 1.0); // Scale the ant
+
+    // Body
+    glColor3f(0, 0, 0);
+    drawCircle(0.0, 0.0, 0.2);
+
+    // Head
+    glColor3f(0.8, 0.8, 0.8);
+    drawCircle(0.25, 0.0, 0.1);
+
+    // Eyes
+    glColor3f(0.0, 0.0, 0.0);
+    drawCircle(0.3, 0.05, 0.02);
+    drawCircle(0.3, -0.05, 0.02);
+
+    // Antennae (lines)
+    glColor3f(0.0, 0.0, 0.0);
+    glBegin(GL_LINES);
+    glVertex2f(0.3, 0.05);
+    glVertex2f(0.4, 0.1);
+    glVertex2f(0.3, -0.05);
+    glVertex2f(0.4, -0.1);
+    glEnd();
+
+    glPopMatrix();
+}
+
 void display()
 {
     glClear(GL_COLOR_BUFFER_BIT);
@@ -270,7 +349,7 @@ void display()
 
     // Set the color to black
     glRasterPos2f(0, 0);
-    glColor3f(0.0, 0.0, 0.0);
+    glColor3f(1.0, 1.0, 1.0);
 
     // Draw a rectangle that covers the entire window
     glBegin(GL_QUADS);
@@ -280,24 +359,24 @@ void display()
     glVertex2f(1.0, -1.0);
     glEnd();
 
-    // Set the color to blue for ants
-    glColor3f(0.1, 0.7, 1.0);
-    for (int i = 0; i < NUMBER_OF_ANTS; i++)
-    {
-        struct Ant *ant = ants[i];
-        glVertex2f(ant->x, ant->y);
-        drawFilledCircle(ant->x, ant->y, 0.02);
-    }
-
     // Set the color to red for food
     glColor3f(1.0, 0.1, 0.1);
     for (int i = 0; i < food_counter; i++)
     {
         struct Food *food = foods[i];
-        glVertex2f(food->x, food->y);
         if (food->quantity > 0)
-            drawFilledCircle(food->x, food->y, food->quantity * 0.0004);
+            drawPlate(food->x, food->y, plateRadius, (int)food->quantity / 10, 0.8);
     }
+    // Set the color to blue for ants
+    glColor3f(0.1, 0.7, 1.0);
+    for (int i = 0; i < NUMBER_OF_ANTS; i++)
+    {
+        struct Ant *ant = ants[i];
+        drawAnt(ant->x, ant->y, ant->direction, 0.1);
+        // glVertex2f(ant->x, ant->y);
+        // drawFilledCircle(ant->x, ant->y, 0.02);
+    }
+
 
     glFlush();
 }
