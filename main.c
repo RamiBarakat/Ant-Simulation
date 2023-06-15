@@ -10,12 +10,18 @@ void *foodCreation(void *arg);
 struct Ant **ants;
 struct Food **foods;
 float radius = 0.02; // Radius of the circle
-int numSegments = 200;
+// int numSegments = 200;
 int NUMBER_OF_FOOD;
 int food_counter = 0;
 int ant_counter = 0;
 void moveAnt(struct Ant *ant);
-float speed = 0.00000001;
+float speed = 0.0000004;
+float scalingFactor;
+float scaledSpeed;
+
+const int numSegments = 100;
+float *cosValues;
+float *sinValues;
 
 int main()
 {
@@ -24,6 +30,9 @@ int main()
     printf("SIMULATION_TIME is %.2f\n", SIMULATION_TIME);
     printf("NUMBER_OF_ANTS is %d\n", NUMBER_OF_ANTS);
     srand(time(NULL));
+
+    scalingFactor = (float)NUMBER_OF_ANTS / 100;
+    scaledSpeed = speed * scalingFactor;
 
     NUMBER_OF_FOOD = (SIMULATION_TIME * 60) / FOOD_ADD_TIME;
 
@@ -48,7 +57,7 @@ int main()
         (*ant).id = i + 1;
         ant->x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
         ant->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
-        ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
+        ant->speed = randomInt(MIN_SPEED, MAX_SPEED)/1.5;
         ant->direction = randomDirection();
         ant->phermone = 0;
         pthread_mutex_init(&ant->mutex, NULL);
@@ -118,12 +127,18 @@ int main()
     return 0;
 }
 
+struct Food *closestFood = NULL;
+float closestDistance = 0.0;
+
 void *antsAction(struct Ant *ant)
 {
     printf("HI\n");
     while (1)
     {
         moveAnt(ant);
+
+        struct Food *closestFood = NULL;
+        float closestDistance = 0.0;
 
         for (int i = 0; i < food_counter; i++)
         {
@@ -132,28 +147,36 @@ void *antsAction(struct Ant *ant)
 
             if (distance <= DISTANCE_ANT_FOOD && food->quantity > 0)
             {
-                float pheromoneAmount = 1.0 / distance;
-                ant->phermone += pheromoneAmount;
-
-                double dx = food->x - ant->x;
-                double dy = food->y - ant->y;
-                double angle = atan2(dy, dx);
-                ant->direction = angle * (180.0 / M_PI);
-
-                ant->x += cos(angle) * ant->speed * speed;
-                ant->y += sin(angle) * ant->speed * speed;
-
-                ant->phermone = 0;
-
-                if (distance < 0.05 && food->quantity > 0)
+                if (closestFood == NULL || distance < closestDistance)
                 {
-                    pthread_mutex_lock(&food->mutex);
-                    ant->speed = 0;
-                    food->quantity -= 5;
-                    sleep(1);
-                    ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
-                    pthread_mutex_unlock(&food->mutex);
+                    closestFood = food;
+                    closestDistance = distance;
                 }
+            }
+        }
+        if (closestFood != NULL)
+        {
+            struct Food *food = closestFood;
+            float distance = closestDistance;
+
+            float pheromoneAmount = 1.0 / distance;
+            ant->phermone += pheromoneAmount;
+
+            double dx = food->x - ant->x;
+            double dy = food->y - ant->y;
+            double angle = atan2(dy, dx);
+            ant->direction = angle * (180.0 / M_PI);
+
+            ant->phermone = 0;
+
+            if (distance < 0.05 && food->quantity > 0)
+            {
+                pthread_mutex_lock(&food->mutex);
+                ant->speed = 0;
+                food->quantity -= 5;
+                sleep(1);
+                ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
+                pthread_mutex_unlock(&food->mutex);
             }
         }
 
@@ -169,14 +192,10 @@ void *antsAction(struct Ant *ant)
                 double dy = ants[i]->y - ant->y;
                 double angle = atan2(dy, dx);
                 ant->direction = angle * (180.0 / M_PI);
-                ant->x += cos(angle) * ant->speed * speed;
-                ant->y += sin(angle) * ant->speed * speed;
             }
             else if (ant->phermone < PHERMONE_MIN && distance <= DISTANCE_ANT_ANT && ant->phermone != 0)
             {
-                ant->direction = 10 * (180.0 / M_PI);
-                ant->x += cos(10) * ant->speed * speed;
-                ant->y += sin(10) * ant->speed * speed;
+                ant->direction += 10 * (180.0 / M_PI);
             }
         }
     }
@@ -185,27 +204,17 @@ void *antsAction(struct Ant *ant)
 void moveAnt(struct Ant *ant)
 {
 
-    if (!(ant->x < -1 || ant->x > 1 || ant->y < -1 || ant->y > 1))
-    {
-        ant->flag = 0;
-    }
     float radian = (ant->direction) * M_PI / 180.0; // Convert angle to radians
 
-    double dx = 0.000000005 * ant->speed * cos(radian);
-    double dy = 0.000000005 * ant->speed * sin(radian);
+    double dx = scaledSpeed * ant->speed * cos(radian);
+    double dy = scaledSpeed * ant->speed * sin(radian);
     // Update the ant's position
     ant->x += dx;
     ant->y += dy;
     if (ant->x < -1 || ant->x > 1 || ant->y < -1 || ant->y > 1)
     {
-        if (!ant->flag)
-        {
-            // printf("hiiiiiiiiiii\n");
-            // ant->direction += (rand() % 2 == 0) ? 135 : -135;
-            ant->direction += 135;
-            ant->direction = ant->direction % 360;
-            ant->flag = 1;
-        }
+        ant->direction += (rand() % 2 == 0) ? 135 : -135;
+        ant->direction = ant->direction % 360;
     }
 }
 
@@ -227,17 +236,28 @@ void deleteThreads()
 {
 }
 
+void initializeCircleValues()
+{
+    const float angleIncrement = 2.0 * M_PI / numSegments;
+    float angle = 0.0;
+    for (int i = 0; i < numSegments; i++)
+    {
+        cosValues[i] = cos(angle);
+        sinValues[i] = sin(angle);
+        angle += angleIncrement;
+    }
+}
+
 void drawFilledCircle(float centerX, float centerY, float radius)
 {
     // Set the color to blue
     glColor3f(0.1, 0.7, 1.0);
-    // Draw the filled circle
+
     glBegin(GL_POLYGON);
     for (int i = 0; i < numSegments; i++)
     {
-        float theta = 2.0 * M_PI * i / numSegments;
-        float x = centerX + radius * cos(theta);
-        float y = centerY + radius * sin(theta);
+        float x = centerX + radius * cosValues[i];
+        float y = centerY + radius * sinValues[i];
         glVertex2f(x, y);
     }
     glEnd();
@@ -251,6 +271,7 @@ void display()
     // Set the color to black
     glRasterPos2f(0, 0);
     glColor3f(0.0, 0.0, 0.0);
+
     // Draw a rectangle that covers the entire window
     glBegin(GL_QUADS);
     glVertex2f(-1.0, -1.0);
@@ -259,24 +280,23 @@ void display()
     glVertex2f(1.0, -1.0);
     glEnd();
 
+    // Set the color to blue for ants
+    glColor3f(0.1, 0.7, 1.0);
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
         struct Ant *ant = ants[i];
         glVertex2f(ant->x, ant->y);
         drawFilledCircle(ant->x, ant->y, 0.02);
-        // printf("Ant %d - Position: (%f, %f)\n", ant->id, ant->x, ant->y);
-        //  printf("Ant %d - Position: (%d)\n", ant->id, ant->direction);
     }
 
+    // Set the color to red for food
+    glColor3f(1.0, 0.1, 0.1);
     for (int i = 0; i < food_counter; i++)
     {
         struct Food *food = foods[i];
         glVertex2f(food->x, food->y);
-        // printf("food->id %d food->quantity %f \n", food->id,food->quantity);
         if (food->quantity > 0)
             drawFilledCircle(food->x, food->y, food->quantity * 0.0004);
-        // printf("Food %d - Position: (%f, %f)\n", food->id, food->x, food->y);
-        // printf("Ant %d - Position: (%d)\n", ant->id, ant->direction);
     }
 
     glFlush();
@@ -294,12 +314,19 @@ void reshape(int width, int height)
 void update(int value)
 {
     glutPostRedisplay();
-    glutTimerFunc(50, update, 0);
+    glutTimerFunc(16, update, 0);
 }
 
 void opengl()
 {
-    printf("Hi im in opengl\n");
+    printf("Hi, I'm in OpenGL\n");
+
+    // Dynamically allocate memory for the arrays
+    cosValues = (float *)malloc(numSegments * sizeof(float));
+    sinValues = (float *)malloc(numSegments * sizeof(float));
+
+    initializeCircleValues();
+
     int c = 1;
     glutInit(&c, NULL);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -312,4 +339,8 @@ void opengl()
     {
         glutMainLoop();
     }
+
+    // Clean up the allocated memory
+    free(cosValues);
+    free(sinValues);
 }
