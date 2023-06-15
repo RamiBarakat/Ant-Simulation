@@ -13,6 +13,7 @@ float radius = 0.02; // Radius of the circle
 int numSegments = 200;
 int NUMBER_OF_FOOD;
 int food_counter = 0;
+int ant_counter = 0;
 void moveAnt(struct Ant *ant);
 float speed = 0.00000001;
 
@@ -50,16 +51,18 @@ int main()
         ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
         ant->direction = randomDirection();
         ant->phermone = 0;
+        pthread_mutex_init(&ant->mutex, NULL);
         ant->flag = 0;
 
         printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
                ant->id, ant->x, ant->y, ant->speed, ant->direction);
-
+        
         if (pthread_create(&ants_threads[i], NULL, (void *)antsAction, ant) != 0)
         {
             fprintf(stderr, "Failed to create thread for ant %d.\n", i);
             exit(-1);
         }
+        ant_counter++;
     }
 
     sleep(1);
@@ -126,6 +129,7 @@ void *antsAction(struct Ant *ant)
         {
             struct Food *food = foods[i];
             float distance = calculateDistance(ant->x, ant->y, food->x, food->y);
+           
 
             if (distance <= DISTANCE_ANT_FOOD)
             {
@@ -142,9 +146,15 @@ void *antsAction(struct Ant *ant)
 
                 ant->phermone = 0;
             }
+            // else if (distance < 0.05){
+            //     printf("hanna\n");
+            //     pthread_mutex_lock(&food->mutex);
+            //     food->quantity -= 0.01;
+            //     pthread_mutex_unlock(&food->mutex);
+            // }
         }
 
-        for (int i = 0; i < NUMBER_OF_ANTS; i++)
+        for (int i = 0; i < ant_counter; i++)
         {
             if (i + 1 == ant->id)
                 continue;
@@ -158,6 +168,11 @@ void *antsAction(struct Ant *ant)
                 ant->direction = angle * (180.0 / M_PI);
                 ant->x += cos(angle) * ant->speed * speed;
                 ant->y += sin(angle) * ant->speed * speed;
+
+            } else if (ant->phermone < PHERMONE_MIN && distance <= DISTANCE_ANT_ANT && ant->phermone != 0) {
+                ant->direction = 10 * (180.0 / M_PI);
+                ant->x += cos(10) * ant->speed * speed;
+                ant->y += sin(10) * ant->speed * speed;
             }
         }
     }
@@ -192,6 +207,19 @@ void moveAnt(struct Ant *ant)
 
 void *foodCreation(void *arg)
 {
+    // while(1){
+
+    //     if (food->occupied)
+    //     {
+    //         food->quantity -= 0.01;
+
+
+    //     }
+
+    //     sleep(1);
+    // }
+
+
 }
 
 void deleteThreads()
@@ -243,7 +271,8 @@ void display()
     {
         struct Food *food = foods[i];
         glVertex2f(food->x, food->y);
-        drawFilledCircle(food->x, food->y, 0.04);
+        //printf("food->id %d food->quantity %f \n", food->id,food->quantity);
+        drawFilledCircle(food->x, food->y, food->quantity * 0.0004);
         // printf("Food %d - Position: (%f, %f)\n", food->id, food->x, food->y);
         // printf("Ant %d - Position: (%d)\n", ant->id, ant->direction);
     }

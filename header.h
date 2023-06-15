@@ -43,9 +43,10 @@ struct Ant{
 struct Food {
     int id;
     float x, y; // Position
-    int quantity;
+    float quantity;
     float phermone;
-    pthread_mutex_t mutex; // Mutex for synchronization
+    int occupied;
+    pthread_mutex_t mutex;// Mutex for synchronization
 };
 
 
