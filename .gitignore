@@ -1,4 +1,12 @@
 # Prerequisites
 .vscode
+
+# executables
+.out
 main
-opengl
+
+# binarys
+.bin
+
+# object files
+*.o
