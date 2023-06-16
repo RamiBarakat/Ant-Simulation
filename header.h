@@ -30,24 +30,5 @@
 #include <stdbool.h>
 #include <ctype.h>
 
-struct Ant{
-    int id;
-    double x, y; // Position
-    int direction;
-    int speed; // Speed of the ant
-    float phermone; // Food smell intensity
-    int flag;
-    pthread_mutex_t mutex; // Mutex for synchronization
-};
-
-struct Food {
-    int id;
-    float x, y; // Position
-    float quantity;
-    float phermone;
-    int occupied;
-    pthread_mutex_t mutex;// Mutex for synchronization
-};
-
 
 #endif

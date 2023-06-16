@@ -2,28 +2,33 @@
 #include "functions.h"
 #include "constants.h"
 
-bool openGlIsFinished = false;
-
+void moveAnt(struct Ant *ant);
 void opengl();
 void *antsAction(struct Ant *args);
 void *foodCreation(void *arg);
+
 struct Ant **ants;
 struct Food **foods;
-float radius = 0.02; // Radius of the circle
-// int numSegments = 200;
+
+float radius = 0.02;
 int NUMBER_OF_FOOD;
 int food_counter = 0;
 int ant_counter = 0;
-void moveAnt(struct Ant *ant);
+
 float speed = 0.0000004;
 float scalingFactor;
 float scaledSpeed;
 
+bool openGlIsFinished = false;
 const int numSegments = 100;
 float *cosValues;
 float *sinValues;
 
 float plateRadius = 0.1;
+
+char text_buffer[BUFF_SIZE];
+char debug = 1;
+float fps, font_height;
 
 int main()
 {
@@ -120,7 +125,6 @@ int main()
             pthread_cancel(opengl_thread);
             break;
         }
-
     }
 
     // sleep(5);
@@ -222,8 +226,9 @@ void *foodCreation(void *arg)
 
 void deleteThreads()
 {
-
 }
+
+/****************************************** OPENGL ************************************************/
 
 void initializeCircleValues()
 {
@@ -237,31 +242,14 @@ void initializeCircleValues()
     }
 }
 
-void drawFilledCircle(float centerX, float centerY, float radius)
-{
-    // Set the color to blue
-    glColor3f(0.1, 0.7, 1.0);
-
-    glBegin(GL_POLYGON);
-    for (int i = 0; i < numSegments; i++)
-    {
-        float x = centerX + radius * cosValues[i];
-        float y = centerY + radius * sinValues[i];
-        glVertex2f(x, y);
-    }
-    glEnd();
-}
-
 void drawPlate(float x, float y, float radius, int quantity, float scaleFactor)
 {
     glPushMatrix();
-    glTranslatef(x, y, 0.0);                 // Translate the plate
-    glScalef(scaleFactor, scaleFactor, 1.0); // Scale the plate
+    glTranslatef(x, y, 0.0);
+    glScalef(scaleFactor, scaleFactor, 1.0);
 
-    // Set the plate color
-    glColor3f(0.95, 0.95, 0.95); // Light Gray
+    glColor3f(RGB_LIGHTGRAY);
 
-    // Draw the plate
     glBegin(GL_POLYGON);
     for (int i = 0; i < 360; i++)
     {
@@ -272,20 +260,16 @@ void drawPlate(float x, float y, float radius, int quantity, float scaleFactor)
     }
     glEnd();
 
-    // Set the food color
-    glColor3f(0.3, 0.9, 0.3); // Light Green
+    glColor3f(RGB_GREEN);
 
-    // Calculate the angle between each food item
     float angleIncrement = 360.0 / quantity;
 
-    // Draw the food items
     for (int i = 0; i < quantity; i++)
     {
         float angle = i * angleIncrement * PI / 180.0;
         float fx = (radius * 0.8) * cos(angle);
         float fy = (radius * 0.8) * sin(angle);
 
-        // Draw a small circle as a food item
         glBegin(GL_POLYGON);
         for (int j = 0; j < 360; j++)
         {
@@ -327,25 +311,25 @@ void drawCircle(float x, float y, float radius)
 void drawAnt(float x, float y, float rotateAngle, float scaleFactor)
 {
     glPushMatrix();
-    glTranslatef(x, y, 0.0);                 // Translate the ant
-    glRotatef(rotateAngle, 0.0, 0.0, 1.0);   // Rotate the ant
-    glScalef(scaleFactor, scaleFactor, 1.0); // Scale the ant
+    glTranslatef(x, y, 0.0);
+    glRotatef(rotateAngle, 0.0, 0.0, 1.0);
+    glScalef(scaleFactor, scaleFactor, 1.0);
 
     // Body
-    glColor3f(0, 0, 0);
+    glColor3f(RGB_BLACK);
     drawCircle(0.0, 0.0, 0.2);
 
     // Head
-    glColor3f(0.8, 0.8, 0.8);
+    glColor3f(RGB_MOREGRAY);
     drawCircle(0.25, 0.0, 0.1);
 
     // Eyes
-    glColor3f(0.0, 0.0, 0.0);
+    glColor3f(RGB_BLACK);
     drawCircle(0.3, 0.05, 0.02);
     drawCircle(0.3, -0.05, 0.02);
 
     // Antennae (lines)
-    glColor3f(0.0, 0.0, 0.0);
+    glColor3f(RGB_BLACK);
     glBegin(GL_LINES);
     glVertex2f(0.3, 0.05);
     glVertex2f(0.4, 0.1);
@@ -356,14 +340,70 @@ void drawAnt(float x, float y, float rotateAngle, float scaleFactor)
     glPopMatrix();
 }
 
+void draw_text(float x, float y, char *string)
+{
+    char *c;
+    glRasterPos2f(x, y);
+    for (c = string; *c != '\0'; c++)
+    {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_10, *c);
+    }
+}
+
+void draw_debug()
+{
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+    if (fps < (float)FPS * 0.8f)
+        glColor3f(RGB_RED);
+    snprintf(text_buffer, BUFF_SIZE, "FPS: %f (%d)", fps, FPS);
+    draw_text(-1, -0.8, text_buffer);
+    glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+
+    snprintf(text_buffer, BUFF_SIZE, "Speed(Min: %d, Max: %d)",
+             MIN_SPEED, MAX_SPEED);
+    draw_text(-1, -0.85, text_buffer);
+
+    snprintf(text_buffer, BUFF_SIZE, "Food_count: %d", food_counter);
+    draw_text(-1, -1, text_buffer);
+
+    snprintf(text_buffer, BUFF_SIZE, "Ants count: %d", ant_counter);
+    draw_text(-1, -0.95, text_buffer);
+
+    snprintf(text_buffer, BUFF_SIZE, "Field(width: %d, height: %d)",
+             SCREEN_WIDTH, SCREEN_HEIGHT);
+    draw_text(-1, -0.9, text_buffer);
+}
+
+void calculate_fps()
+{
+    static int current_time, previous_time, frame_count;
+    frame_count++;
+
+    current_time = glutGet(GLUT_ELAPSED_TIME);
+
+    int time_interval = current_time - previous_time;
+
+    if (time_interval > 1000)
+    {
+        fps = frame_count / (time_interval / 1000.0f);
+
+        previous_time = current_time;
+
+        frame_count = 0;
+    }
+}
+
 void display()
 {
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity();
 
-    // Set the color to black
+    // Set the background color to White
     glRasterPos2f(0, 0);
-    glColor3f(1.0, 1.0, 1.0);
+    glColor3f(RGB_WHITE);
 
     // Draw a rectangle that covers the entire window
     glBegin(GL_QUADS);
@@ -373,24 +413,24 @@ void display()
     glVertex2f(1.0, -1.0);
     glEnd();
 
-    // Set the color to red for food
-    glColor3f(1.0, 0.1, 0.1);
+    calculate_fps();
+    if (debug)
+    {
+        draw_debug();
+    }
+
     for (int i = 0; i < food_counter; i++)
     {
         struct Food *food = foods[i];
         if (food->quantity > 0)
             drawPlate(food->x, food->y, plateRadius, (int)food->quantity / 10, 0.8);
     }
-    // Set the color to blue for ants
-    glColor3f(0.1, 0.7, 1.0);
+
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
         struct Ant *ant = ants[i];
         drawAnt(ant->x, ant->y, ant->direction, 0.1);
-        // glVertex2f(ant->x, ant->y);
-        // drawFilledCircle(ant->x, ant->y, 0.02);
     }
-
 
     glFlush();
 }
@@ -412,7 +452,7 @@ void update(int value)
 
 void opengl()
 {
-    printf("Hi, I'm in OpenGL\n");
+    font_height = 10.0f;
 
     // Dynamically allocate memory for the arrays
     cosValues = (float *)malloc(numSegments * sizeof(float));

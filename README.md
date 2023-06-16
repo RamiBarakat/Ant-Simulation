@@ -1,45 +1,59 @@
-# Message Encoding/Decoding System :closed_lock_with_key:
+# Ants 🐜 Searching for Food 🍰 🍴 Simulation
 
-This project aims to implement a multi-processing approach for sending encoded messages that can only be decoded by the intended receiver. The system involves the use of several processes, including a sender process, receiver process, master spy process, helper processes, and spy processes. The system operates under the assumption that a successful operation occurs when the receiver can decode the messages before the master spy, while a failed operation occurs if the master spy decodes the messages first.
+This project aims to build a multi-threading application that simulates the behavior of a group of ants once any of them smell the presence of food. The simulation involves randomly located ants walking in random directions and speeds, the placement of food in random locations, and the release of pheromones to trigger a social response in neighboring ants.
 
-## 🚀 Application Scenario :clipboard:
 
-The system follows the following scenario:
+## 🚀 Simulation Features
 
-1. A parent process creates the necessary child processes: a single sender process, a single receiver process, a single master spy process, a user-defined number of helper processes, and a user-defined number of spy processes.
-2. The sender process retrieves the message from an input file (e.g., `sender.txt`). The message may contain multiple lines and paragraphs.
-3. The sender process splits the input file into columns based on the blank character between words.
-4. Each child process is responsible for encoding a specific column message received from the sender process. The encoding process is as follows:
-   - For the first column, each word is modified by adding 1 to the first character modulo 26, 2 to the second character modulo 26, and so on. The encoded message is then placed in the first location of the shared memory.
-   - For the second column, each word is modified by adding 2 to the first character modulo 26, 4 to the second character modulo 26, and so on. The encoded message is then placed in the second location of the shared memory.
-   - The same logic applies to subsequent columns and words in each column.
-   - Special characters and numbers are encoded based on specific rules mentioned in the project requirements.
-   - Each encoded column in the shared memory is identified by a unique prefix or suffix.
-5. Helper processes continuously swap the messages present in the shared memory to hinder spy processes from obtaining all the columns of the file.
-6. Spy processes randomly access shared memory locations to retrieve encoded messages and send them to the master spy process.
-7. The master spy process attempts to order the columns in the correct order after receiving them from the spy processes. It drops any columns it has already received. Once confident it has received all the columns, it tries to decode the messages present in the `spy.txt` file.
-8. The receiver process also randomly accesses shared memory locations to retrieve encoded messages. Similar to the master spy process, it orders the received columns correctly and discards any duplicates. Once confident it has received all the columns, it attempts to decode the messages present in the `receiver.txt` file.
-9. The parent process determines whether the receiver process was able to obtain the correct file from the sender before the master spy process. If the receiver succeeds, the operation is considered successful; otherwise, it is labeled as a failed operation.
-10. The simulation ends if any of the following conditions are met:
-    - The number of failed decoding operations by the receiver exceeds a user-defined threshold.
-    - The number of successful decoding operations by the receiver exceeds a user-defined threshold.
+- Creation of a user-defined number of ants with random locations, walking directions, and speeds.
+- Simulation of ant behavior when hitting the simulation window limits, including changing direction with an additional 45° angle.
+- Placement of food in random locations at user-defined time intervals.
+- Detection of food presence by ants within a user-defined distance.
+- Release of pheromones by ants that smell food, triggering a social response in neighboring ants.
+- Directional changes in ants based on pheromone smell and quantity.
+- Prioritization of food sources based on pheromone intensity.
+- Ant gathering on top of food and eating portions until food is consumed.
+- Simulation termination after a user-defined amount of time.
 
-## 📝 To-Do List :pencil:
 
-- [ ] Implement the parent process to create necessary child processes.
-- [ ] Develop the sender process to retrieve and split the message into columns.
-- [ ] Implement child processes to encode column messages and place them in the shared memory.
-- [ ] Create helper processes to swap messages in the shared memory.
-- [ ] Develop spy processes to access and send encoded messages to the master spy process.
-- [ ] Implement the master spy process to order and decode received messages.
-- [ ] Create the receiver process to access and decode messages from the shared memory.
-- [ ] Develop the parent process to evaluate the success or failure of the operation.
-- [ ] Handle termination conditions to end the simulation.
-- [ ] Write unit tests to ensure the correctness of the implemented functionalities.
-- [ ] Update the README file with detailed instructions on how to run the system.
-- [ ] Write a comprehensive documentation describing the system's architecture, components, and functionality.
+## 📋 Simulation Process
+
+The simulation follows the following process:
+
+1. Initialization:
+   - Create a user-defined number of ants with random locations, walking directions, and speeds.
+   - Set simulation parameters, including simulation window limits and time intervals for food placement.
+   - Initialize the graphical representation of the simulation using elements from the OpenGL library.
+
+2. Ant Movement:
+   - Each ant moves randomly in one of the eight directions: North (N), South (S), East (E), West (W), North-East (NE), North-West (NW), South-East (SE), South-West (SW).
+   - If an ant hits the simulation window limits, it continues walking with the same speed but with an additional 45° angle, either clockwise (CW) or counterclockwise (CCW).
+
+3. Food Placement:
+   - Randomly place food in the simulation environment at user-defined time intervals.
+   - Ensure that the distance between the food and the ants is within a user-defined range for food detection.
+
+4. Pheromone Release and Social Response:
+   - When an ant detects the presence of food, it releases a pheromone.
+   - Ants within a user-defined distance from the pheromone release change their direction and head towards the food.
+   - These ants release a less powerful pheromone that helps propagate the social response in more ants, with the released pheromone amount inversely proportional to the distance to the food.
+   - Ants that smell pheromones but with lesser quantities change direction by 5° in the direction of the food position per second.
+   - If the pheromone smelled by an ant drops below a user-defined quantity, it continues in the current direction of movement.
+   - Ants favor food sources with higher pheromone smell if they receive pheromone smell from multiple food locations.
+
+5. Food Consumption:
+   - When ants gather on top of a piece of food, they stop walking and each eat a small portion of the food until it is consumed.
+   - Monitor food consumption to avoid multiple ants eating the same food portion.
+   - Define a user-defined portion size (in percent) of food consumed per second by each ant.
+
+6. Simulation Termination:
+   - The simulation continues until a user-defined amount of time (in minutes) has elapsed.
+   - Once the time limit is reached, the simulation ends, and the results can be analyzed.
+
 
 ## 🤖 Tech Stack
+
+The simulation is implemented using the following technologies:
 
 - Linux OS
 - Docker
@@ -51,59 +65,41 @@ The system follows the following scenario:
 
 # TODO List
 
-- [ ] Parent Process:
-  - [ ] Create shared memory for message exchange between processes.
-  - [ ] Create semaphores for synchronization and mutual exclusion.
-  - [ ] Create sender, receiver, master spy, helper, and spy processes.
-  - [ ] Wait for the receiver process to complete and determine the operation's success.
+- [ ] Initialization:
+  - [ ] Create a user-defined number of ants with random locations, walking directions, and speeds.
+  - [ ] Set simulation parameters, including simulation window limits and time intervals for food placement.
+  - [ ] Initialize the graphical representation of the simulation using elements from the OpenGL library.
 
-- [ ] Sender Process:
-  - [ ] Read the message from the input file (sender.txt).
-  - [ ] Split the message into columns based on the blank character.
-  - [ ] Replace empty strings with "alright".
-  - [ ] Calculate the number of columns.
-  - [ ] Create child processes for each column and pass the column message to them.
-  - [ ] Encode the column message based on the specified rules.
-  - [ ] Place the encoded message in the shared memory.
+- [ ] Ant Movement:
+  - [ ] Implement random movement for each ant in one of the eight directions.
+  - [ ] Handle ant behavior when hitting the simulation window limits, including changing direction with an additional 45° angle.
 
-- [ ] Child Processes (Column Encoding):
-  - [ ] Receive the column message from the sender process.
-  - [ ] Encode the message according to the given rules.
-  - [ ] Add the encoded message to the shared memory.
+- [ ] Food Placement:
+  - [ ] Randomly place food in the simulation environment at user-defined time intervals.
+  - [ ] Ensure that the distance between the food and the ants is within a user-defined range for food detection.
 
-- [ ] Helper Processes:
-  - [ ] Continuously swap the messages present in the shared memory to confuse spy processes.
-  - [ ] Generate random locations in the shared memory to perform swapping.
-  - [ ] Use semaphores to ensure mutual exclusion during swapping.
+- [ ] Pheromone Release and Social Response:
+  - [ ] Implement pheromone release by ants when they detect the presence of food.
+  - [ ] Handle directional changes in ants within a user-defined distance from the pheromone release.
+  - [ ] Propagate the social response by releasing pheromones with an amount inversely proportional to the distance to the food.
+  - [ ] Adjust ants' direction based on pheromone smell and quantity.
+  - [ ] Implement preference for food sources with higher pheromone smell if multiple sources are detected.
 
-- [ ] Spy Processes:
-  - [ ] Continuously access random locations in the shared memory.
-  - [ ] Retrieve the encoded messages and send them to the master spy process.
-  - [ ] Use semaphores to coordinate access to shared memory.
+- [ ] Food Consumption:
+  - [ ] Implement food consumption by ants when they gather on top of a food source.
+  - [ ] Monitor food portions to avoid multiple ants consuming the same portion simultaneously.
+  - [ ] Define a user-defined portion size (in percent) of food consumed per second by each ant.
 
-- [ ] Master Spy Process:
-  - [ ] Receive encoded messages from spy processes.
-  - [ ] Order the columns in the correct order.
-  - [ ] Drop columns that are already received.
-  - [ ] Determine when all columns are received.
-  - [ ] Attempt to decode the messages in the spy.txt file.
-  - [ ] Inform the parent process of the decoding result.
+- [ ] Simulation Termination:
+  - [ ] Set a user-defined time limit (in minutes) for the simulation.
+  - [ ] End the simulation when the time limit is reached.
+  - [ ] Analyze and evaluate the simulation results.
 
-- [ ] Receiver Process:
-  - [ ] Continuously access random locations in the shared memory.
-  - [ ] Retrieve the encoded messages.
-  - [ ] Order the columns in the correct order.
-  - [ ] Drop columns that are already received.
-  - [ ] Determine when all columns are received.
-  - [ ] Attempt to decode the messages in the receiver.txt file.
-  - [ ] Inform the parent process of the decoding result.
+- [ ] Additional Enhancements:
+  - [ ] Implement a text file to store user-defined values for simulation parameters.
+  - [ ] Use graphical elements from the OpenGL library to visualize the simulation environment.
+  - [ ] Ensure realistic choices and behaviors for the ants.
+  - [ ] Test and debug the program, using the gdb debugger if necessary.
+  - [ ] Refactor the code for clarity, modularity, and efficiency.
+  - [ ] Add error handling and edge cases to enhance the robustness of the simulation.
 
-- [ ] Parent Process (Continued):
-  - [ ] Wait for the receiver process to complete and receive the decoding result.
-  - [ ] Determine if the receiver successfully decoded the messages before the master spy.
-  - [ ] Label the operation as successful or failed based on the result.
-
-- [ ] Termination Condition:
-  - [ ] Monitor the number of failed decoding operations by the receiver process.
-  - [ ] Monitor the number of successful decoding operations by the receiver process.
-  - [ ] Terminate the simulation if either threshold is exceeded.

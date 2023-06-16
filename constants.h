@@ -4,14 +4,19 @@
 #define PI 3.14159265
 
 #define RGB_GRAY 0.5f, 0.5f, 0.5f
-#define RGB_MOREGRAY 0.7f, 0.7f, 0.7f
-#define RGB_GREEN 0.0f, 1.0f, 0.0f
+#define RGB_MOREGRAY 0.8f, 0.8f, 0.8f
+#define RGB_GREEN 0.3f, 0.9f, 0.3f
 #define RGB_LIGHTRED 0.9f, 0.5f, 0.5f
 #define RGB_RED 0.9f, 0.0f, 0.0f
 #define RGB_LIGHTGRAY 0.94f, 0.94f, 0.94f
+#define RGB_WHITE 1.0f, 1.0f, 1.0f
+#define RGB_BLACK 0.0f, 0.0f, 0.0f
 
-const int SCREEN_WIDTH = 1000;
-const int SCREEN_HEIGHT = 1000;
+#define BUFF_SIZE 100
+#define FPS 60
+
+const int SCREEN_WIDTH = 600;
+const int SCREEN_HEIGHT = 600;
 
 float SIMULATION_TIME;
 int NUMBER_OF_ANTS;
@@ -23,5 +28,26 @@ float DISTANCE_ANT_ANT;
 float PHERMONE_MIN = 1.5;
 
 int directions[] = {0, 45, 90, 135, 180, 225, 270, 315, 360};
+
+struct Ant
+{
+    int id;
+    double x, y; // Position
+    int direction;
+    int speed;      // Speed of the ant
+    float phermone; // Food smell intensity
+    int flag;
+    pthread_mutex_t mutex; // Mutex for synchronization
+};
+
+struct Food
+{
+    int id;
+    float x, y; // Position
+    float quantity;
+    float phermone;
+    int occupied;
+    pthread_mutex_t mutex; // Mutex for synchronization
+};
 
 #endif
