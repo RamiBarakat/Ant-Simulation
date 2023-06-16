@@ -70,8 +70,8 @@ int main()
         pthread_mutex_init(&ant->mutex, NULL);
         ant->flag = 0;
 
-        printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
-               ant->id, ant->x, ant->y, ant->speed, ant->direction);
+        // printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
+        //        ant->id, ant->x, ant->y, ant->speed, ant->direction);
 
         if (pthread_create(&ants_threads[i], NULL, (void *)antsAction, ant) != 0)
         {

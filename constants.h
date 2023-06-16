@@ -15,8 +15,8 @@
 #define BUFF_SIZE 100
 #define FPS 60
 
-const int SCREEN_WIDTH = 600;
-const int SCREEN_HEIGHT = 600;
+const int SCREEN_WIDTH = 700;
+const int SCREEN_HEIGHT = 700;
 
 float SIMULATION_TIME;
 int NUMBER_OF_ANTS;
