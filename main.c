@@ -25,7 +25,7 @@ float speed = 0.000001;
 float scalingFactor;
 float scaledSpeed;
 
-bool openGlIsFinished = false;
+bool terminate = false;
 const int numSegments = 100;
 float *cosValues;
 float *sinValues;
@@ -40,7 +40,6 @@ void handle_alarm(int signal);
 
 int main()
 {
-
     readArguments("arguments.txt");
     printf("SIMULATION_TIME is %.2f\n", SIMULATION_TIME);
     printf("NUMBER_OF_ANTS is %d\n", NUMBER_OF_ANTS);
@@ -52,8 +51,25 @@ int main()
     NUMBER_OF_FOOD = (SIMULATION_TIME * 60) / FOOD_ADD_TIME;
 
     ants_threads = malloc(NUMBER_OF_ANTS * sizeof(pthread_t));
+    if (ants_threads == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for ants_threads.\n");
+        exit(-1); // Or handle the error in an appropriate way
+    }
+
     ants = malloc(sizeof(struct Ant) * NUMBER_OF_ANTS);
+    if (ants == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for ants.\n");
+        exit(-1); // Or handle the error in an appropriate way
+    }
+
     foods = malloc(sizeof(struct Food) * NUMBER_OF_FOOD);
+    if (foods == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for foods.\n");
+        exit(-1); // Or handle the error in an appropriate way
+    }
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
@@ -64,7 +80,11 @@ int main()
         ant.speed = randomInt(MIN_SPEED, MAX_SPEED);
         ant.direction = randomDirection();
         ant.phermone = 0;
-        pthread_mutex_init(&ant.mutex, NULL);
+        if (pthread_mutex_init(&ant.mutex, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to initialize mutex for ant %d.\n", ant.id);
+            exit(EXIT_FAILURE); // Or handle the error in an appropriate way
+        }
 
         ants[i] = ant;
         printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
@@ -103,31 +123,66 @@ int main()
         food.x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
         food.y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
         food.quantity = 100;
-        pthread_mutex_init(&food.mutex, NULL);
+        if (pthread_mutex_init(&food.mutex, NULL) != 0)
+        {
+            fprintf(stderr, "Failed to initialize mutex for Food %d.\n", food.id);
+            exit(EXIT_FAILURE); // Or handle the error in an appropriate way
+        }
 
         foods[food_counter] = food;
         food_counter++;
         sleep(FOOD_ADD_TIME);
-    }
+        if (terminate)
+        {
+            pthread_cancel(opengl_thread);
 
+            for (int i = 0; i < NUMBER_OF_ANTS; i++)
+            {
+                pthread_cancel(ants_threads[i]);
+            }
+            for (int i = 0; i < NUMBER_OF_ANTS; i++)
+            {
+                pthread_mutex_destroy(&ants[i].mutex);
+            }
+
+            for (int i = 0; i < food_counter; i++)
+            {
+                pthread_mutex_destroy(&foods[i].mutex);
+            }
+
+            break;
+        }
+    }
+    printf("Done\n");
     return 0;
 }
 
 void *antsAction(void *arg)
 {
     int index = *(int *)arg;
-    while (1)
+    while (!terminate)
     {
+        if (pthread_mutex_lock(&ants[index].mutex) != 0)
+        {
+            fprintf(stderr, "Couldn't unlock the mutex of Ant");
+            exit(-1);
+        }
         moveAnt(index);
         lookForFood(index);
-        //smellPhermone(index);
+        smellPhermone(index);
+        if (pthread_mutex_unlock(&ants[index].mutex) != 0)
+        {
+            fprintf(stderr, "Couldn't unlock the mutex of Ant");
+            exit(-1);
+        }
     }
+    return 0;
 }
 
 void moveAnt(int index)
 {
     // Convert angle to radians
-    float radian = (ants[index].direction) * M_PI / 180.0; 
+    float radian = (ants[index].direction) * M_PI / 180.0;
     float dx = scaledSpeed * ants[index].speed * cosf(radian);
     float dy = scaledSpeed * ants[index].speed * sinf(radian);
     // Update the ants[index]'s position
@@ -163,20 +218,28 @@ void lookForFood(int index)
         float pheromoneAmount = 1.0 / distance;
         ants[index].phermone += pheromoneAmount;
 
-        double dx = foods[closestFood].x - ants[index].x;
-        double dy = foods[closestFood].y - ants[index].y;
-        double angle = atan2(dy, dx);
+        float dx = foods[closestFood].x - ants[index].x;
+        float dy = foods[closestFood].y - ants[index].y;
+        float angle = atan2(dy, dx);
         ants[index].direction = angle * (180.0 / M_PI);
 
         ants[index].phermone = 0;
         if (distance < (0.05 + plateRadius) && foods[closestFood].quantity > 0)
         {
             ants[index].speed = 0;
-            pthread_mutex_lock(&foods[closestFood].mutex);
-            foods[closestFood].quantity -= 5;
+            if (pthread_mutex_lock(&foods[closestFood].mutex) != 0)
+            {
+                fprintf(stderr, "Couldn't lock the mutex of food");
+                exit(-1);
+            }
+            foods[closestFood].quantity -= PORTION_PER_SECOND;
             if (foods[closestFood].quantity > 0)
                 usleep(500000);
-            pthread_mutex_unlock(&foods[closestFood].mutex);
+            if (pthread_mutex_unlock(&foods[closestFood].mutex) != 0)
+            {
+                fprintf(stderr, "Couldn't unlock the mutex of food");
+                exit(-1);
+            }
             ants[index].speed = randomInt(MIN_SPEED, MAX_SPEED);
         }
     }
@@ -192,9 +255,9 @@ void smellPhermone(int index)
         float distance = calculateDistance(ants[index].x, ants[index].y, ants[i].x, ants[i].y);
         if (distance <= DISTANCE_ANT_ANT && ants[i].phermone > PHERMONE_MIN)
         {
-            double dx = ants[i].x - ants[index].x;
-            double dy = ants[i].y - ants[index].y;
-            double angle = atan2(dy, dx);
+            float dx = ants[i].x - ants[index].x;
+            float dy = ants[i].y - ants[index].y;
+            float angle = atan2(dy, dx);
             ants[index].direction = angle * (180.0 / M_PI);
         }
         else if (ants[index].phermone < PHERMONE_MIN && distance <= DISTANCE_ANT_ANT && ants[index].phermone != 0)
@@ -206,13 +269,8 @@ void smellPhermone(int index)
 
 void handle_alarm(int signum)
 {
-    openGlIsFinished = true;
-    pthread_cancel(opengl_thread);
-    for (int i = 0; i < NUMBER_OF_ANTS; i++)
-    {
-        pthread_cancel(ants_threads[i]);
-    }
-    exit(-1);
+    terminate = true;
+    printf("Signal Received: Program Finished!\n");
 }
 
 /****************************************** OPENGL ************************************************/
@@ -453,12 +511,8 @@ void opengl()
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutTimerFunc(0, update, 0);
-    while (!openGlIsFinished)
+    while (!terminate)
     {
         glutMainLoop();
     }
-
-    // Clean up the allocated memory
-    free(cosValues);
-    free(sinValues);
 }

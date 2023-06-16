@@ -40,15 +40,9 @@ void readArguments(char* filename){
             DISTANCE_ANT_FOOD = atof(str);
         }else if (strcmp(label, "DISTANCE_ANT_ANT") == 0){
             DISTANCE_ANT_ANT = atof(str);
+        }else if (strcmp(label, "PORTION_PER_SECOND") == 0){
+            PORTION_PER_SECOND = atoi(str);
         } 
-
-
-        
-
-
-        // }else if(strcmp(label, "THE_LEADER_NAME") == 0){
-        //     strncpy(THE_LEADER_NAME, str, sizeof(THE_LEADER_NAME));
-        // }
 
     }
 

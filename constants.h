@@ -25,6 +25,7 @@ int MIN_SPEED;
 int FOOD_ADD_TIME;
 float DISTANCE_ANT_FOOD;
 float DISTANCE_ANT_ANT;
+float PORTION_PER_SECOND;
 float PHERMONE_MIN = 1.5;
 
 int directions[] = {0, 45, 90, 135, 180, 225, 270, 315, 360};
@@ -45,7 +46,6 @@ struct Food
     float x, y; // Position
     float quantity;
     float phermone;
-    int occupied;
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 
