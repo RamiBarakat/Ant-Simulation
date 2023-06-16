@@ -36,7 +36,6 @@ struct Ant
     int direction;
     int speed;      // Speed of the ant
     float phermone; // Food smell intensity
-    int flag;
     pthread_mutex_t mutex; // Mutex for synchronization
 };
 

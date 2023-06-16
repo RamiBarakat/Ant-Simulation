@@ -2,20 +2,26 @@
 #include "functions.h"
 #include "constants.h"
 
-void moveAnt(struct Ant *ant);
+void moveAnt(int);
+void lookForFood(int);
+void smellPhermone(int);
 void opengl();
-void *antsAction(struct Ant *args);
+void *antsAction(void *args);
 void *foodCreation(void *arg);
 
-struct Ant **ants;
-struct Food **foods;
+struct Ant *ants;
+struct Food *foods;
+
+pthread_t *ants_threads;
+pthread_t *foods_threads;
+pthread_t opengl_thread;
 
 float radius = 0.02;
 int NUMBER_OF_FOOD;
 int food_counter = 0;
 int ant_counter = 0;
 
-float speed = 0.0000004;
+float speed = 0.000001;
 float scalingFactor;
 float scaledSpeed;
 
@@ -30,6 +36,8 @@ char text_buffer[BUFF_SIZE];
 char debug = 1;
 float fps, font_height;
 
+void handle_alarm(int signal);
+
 int main()
 {
 
@@ -43,37 +51,28 @@ int main()
 
     NUMBER_OF_FOOD = (SIMULATION_TIME * 60) / FOOD_ADD_TIME;
 
-    pthread_t opengl_thread;
-    pthread_t ants_threads[NUMBER_OF_ANTS];
-    pthread_t foods_threads[NUMBER_OF_FOOD];
-
-    ants = malloc(sizeof(struct Ant *) * NUMBER_OF_ANTS);
-    foods = malloc(sizeof(struct Food *) * NUMBER_OF_FOOD);
+    ants_threads = malloc(NUMBER_OF_ANTS * sizeof(pthread_t));
+    ants = malloc(sizeof(struct Ant) * NUMBER_OF_ANTS);
+    foods = malloc(sizeof(struct Food) * NUMBER_OF_FOOD);
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
-        struct Ant *ant;
-        ant = malloc(sizeof(struct Ant));
-        if (ant == NULL)
-        {
-            fprintf(stderr, "Failed to allocate memory for ant %d.\n", i);
-            exit(-1);
-        }
+        struct Ant ant;
+        ant.id = i + 1;
+        ant.x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
+        ant.y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
+        ant.speed = randomInt(MIN_SPEED, MAX_SPEED);
+        ant.direction = randomDirection();
+        ant.phermone = 0;
+        pthread_mutex_init(&ant.mutex, NULL);
+
         ants[i] = ant;
+        printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
+               ant.id, ant.x, ant.y, ant.speed, ant.direction);
 
-        (*ant).id = i + 1;
-        ant->x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
-        ant->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
-        ant->speed = randomInt(MIN_SPEED, MAX_SPEED) / 1.5;
-        ant->direction = randomDirection();
-        ant->phermone = 0;
-        pthread_mutex_init(&ant->mutex, NULL);
-        ant->flag = 0;
-
-        // printf("Ant ID: %d, Position: (%f, %f), Speed: %d, Direction: %d\n",
-        //        ant->id, ant->x, ant->y, ant->speed, ant->direction);
-
-        if (pthread_create(&ants_threads[i], NULL, (void *)antsAction, ant) != 0)
+        int *a = malloc(sizeof(int));
+        *a = i;
+        if (pthread_create(&ants_threads[i], NULL, &antsAction, a) != 0)
         {
             fprintf(stderr, "Failed to create thread for ant %d.\n", i);
             exit(-1);
@@ -88,146 +87,132 @@ int main()
         exit(-1);
     }
 
+    if (signal(SIGALRM, handle_alarm) == SIG_ERR)
+    {
+        perror("Failed to set signal handler for SIGALRM");
+        exit(1);
+    }
+    unsigned int SIM_END = (unsigned int)(SIMULATION_TIME * 60.0f);
+    alarm(SIM_END);
+
     while (1)
     {
         // Create new food
-        struct Food *food = malloc(sizeof(struct Food));
-        food->id = food_counter + 1;
-        food->x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
-        food->y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
-        food->quantity = 100;
-        pthread_mutex_init(&food->mutex, NULL);
+        struct Food food;
+        food.id = food_counter + 1;
+        food.x = randomFloat(-SCREEN_WIDTH, SCREEN_WIDTH) / SCREEN_WIDTH;
+        food.y = randomFloat(-SCREEN_HEIGHT, SCREEN_HEIGHT) / SCREEN_HEIGHT;
+        food.quantity = 100;
+        pthread_mutex_init(&food.mutex, NULL);
 
         foods[food_counter] = food;
-
-        if (pthread_create(&foods_threads[food_counter], NULL, (void *)foodCreation, NULL) != 0)
-        {
-            fprintf(stderr, "Failed to create thread for ant %d.\n", food_counter);
-            exit(-1);
-        }
         food_counter++;
         sleep(FOOD_ADD_TIME);
-
-        if (food_counter == NUMBER_OF_FOOD)
-        {
-
-            for (int i = 0; i < NUMBER_OF_ANTS; i++)
-            {
-                pthread_cancel(ants_threads[i]);
-            }
-
-            for (int i = 0; i < NUMBER_OF_FOOD; i++)
-            {
-                pthread_cancel(foods_threads[i]);
-            }
-            free(foods);
-            free(ants);
-            pthread_cancel(opengl_thread);
-            break;
-        }
     }
-
-    // sleep(5);
-    // openGlIsFinished = true;
 
     return 0;
 }
 
-void *antsAction(struct Ant *ant)
+void *antsAction(void *arg)
 {
+    int index = *(int *)arg;
     while (1)
     {
-        moveAnt(ant);
-
-        struct Food *closestFood = NULL;
-        float closestDistance = 0.0;
-
-        for (int i = 0; i < food_counter; i++)
-        {
-            struct Food *food = foods[i];
-            float distance = calculateDistance(ant->x, ant->y, food->x, food->y);
-
-            if (distance <= DISTANCE_ANT_FOOD && food->quantity > 0)
-            {
-                if (closestFood == NULL || distance < closestDistance)
-                {
-                    closestFood = food;
-                    closestDistance = distance;
-                }
-            }
-        }
-        if (closestFood != NULL)
-        {
-            struct Food *food = closestFood;
-            float distance = closestDistance;
-
-            float pheromoneAmount = 1.0 / distance;
-            ant->phermone += pheromoneAmount;
-
-            double dx = food->x - ant->x;
-            double dy = food->y - ant->y;
-            double angle = atan2(dy, dx);
-            ant->direction = angle * (180.0 / M_PI);
-
-            ant->phermone = 0;
-
-            if (distance < (0.05 + plateRadius) && food->quantity > 0)
-            {
-                pthread_mutex_lock(&food->mutex);
-                ant->speed = 0;
-                sleep(1);
-                food->quantity -= 5;
-                ant->speed = randomInt(MIN_SPEED, MAX_SPEED);
-                pthread_mutex_unlock(&food->mutex);
-            }
-        }
-
-        for (int i = 0; i < ant_counter; i++)
-        {
-            if (i + 1 == ant->id)
-                continue;
-
-            float distance = calculateDistance(ant->x, ant->y, ants[i]->x, ants[i]->y);
-            if (distance <= DISTANCE_ANT_ANT && ants[i]->phermone > PHERMONE_MIN)
-            {
-                double dx = ants[i]->x - ant->x;
-                double dy = ants[i]->y - ant->y;
-                double angle = atan2(dy, dx);
-                ant->direction = angle * (180.0 / M_PI);
-            }
-            else if (ant->phermone < PHERMONE_MIN && distance <= DISTANCE_ANT_ANT && ant->phermone != 0)
-            {
-                ant->direction += 10 * (180.0 / M_PI);
-            }
-        }
+        moveAnt(index);
+        lookForFood(index);
+        //smellPhermone(index);
     }
 }
 
-void moveAnt(struct Ant *ant)
+void moveAnt(int index)
 {
-
-    float radian = (ant->direction) * M_PI / 180.0; // Convert angle to radians
-
-    double dx = scaledSpeed * ant->speed * cos(radian);
-    double dy = scaledSpeed * ant->speed * sin(radian);
-    // Update the ant's position
-    ant->x += dx;
-    ant->y += dy;
-    if (ant->x < -1 || ant->x > 1 || ant->y < -1 || ant->y > 1)
+    // Convert angle to radians
+    float radian = (ants[index].direction) * M_PI / 180.0; 
+    float dx = scaledSpeed * ants[index].speed * cosf(radian);
+    float dy = scaledSpeed * ants[index].speed * sinf(radian);
+    // Update the ants[index]'s position
+    ants[index].x += dx;
+    ants[index].y += dy;
+    if (ants[index].x < -1 || ants[index].x > 1 || ants[index].y < -1 || ants[index].y > 1)
     {
-        ant->direction += (rand() % 2 == 0) ? 135 : -135;
-        ant->direction = ant->direction % 360;
+        ants[index].direction += (rand() % 2 == 0) ? 135 : -135;
+        ants[index].direction = ants[index].direction % 360;
     }
 }
 
-void *foodCreation(void *arg)
+void lookForFood(int index)
 {
-    /**/
+    int closestFood = -1;
+    float closestDistance = 0.0;
+
+    for (int i = 0; i < food_counter; i++)
+    {
+        float distance = calculateDistance(ants[index].x, ants[index].y, foods[i].x, foods[i].y);
+        if (distance <= DISTANCE_ANT_FOOD && foods[i].quantity > 0)
+        {
+            if (closestFood == -1 || distance < closestDistance)
+            {
+                closestFood = i;
+                closestDistance = distance;
+            }
+        }
+    }
+    if (closestFood != -1)
+    {
+        float distance = closestDistance;
+        float pheromoneAmount = 1.0 / distance;
+        ants[index].phermone += pheromoneAmount;
+
+        double dx = foods[closestFood].x - ants[index].x;
+        double dy = foods[closestFood].y - ants[index].y;
+        double angle = atan2(dy, dx);
+        ants[index].direction = angle * (180.0 / M_PI);
+
+        ants[index].phermone = 0;
+        if (distance < (0.05 + plateRadius) && foods[closestFood].quantity > 0)
+        {
+            ants[index].speed = 0;
+            pthread_mutex_lock(&foods[closestFood].mutex);
+            foods[closestFood].quantity -= 5;
+            if (foods[closestFood].quantity > 0)
+                usleep(500000);
+            pthread_mutex_unlock(&foods[closestFood].mutex);
+            ants[index].speed = randomInt(MIN_SPEED, MAX_SPEED);
+        }
+    }
 }
 
-void deleteThreads()
+void smellPhermone(int index)
 {
-    /**/
+    for (int i = 0; i < ant_counter; i++)
+    {
+        if (i + 1 == ants[index].id)
+            continue;
+
+        float distance = calculateDistance(ants[index].x, ants[index].y, ants[i].x, ants[i].y);
+        if (distance <= DISTANCE_ANT_ANT && ants[i].phermone > PHERMONE_MIN)
+        {
+            double dx = ants[i].x - ants[index].x;
+            double dy = ants[i].y - ants[index].y;
+            double angle = atan2(dy, dx);
+            ants[index].direction = angle * (180.0 / M_PI);
+        }
+        else if (ants[index].phermone < PHERMONE_MIN && distance <= DISTANCE_ANT_ANT && ants[index].phermone != 0)
+        {
+            ants[index].direction += 10 * (180.0 / M_PI);
+        }
+    }
+}
+
+void handle_alarm(int signum)
+{
+    openGlIsFinished = true;
+    pthread_cancel(opengl_thread);
+    for (int i = 0; i < NUMBER_OF_ANTS; i++)
+    {
+        pthread_cancel(ants_threads[i]);
+    }
+    exit(-1);
 }
 
 /****************************************** OPENGL ************************************************/
@@ -423,15 +408,13 @@ void display()
 
     for (int i = 0; i < food_counter; i++)
     {
-        struct Food *food = foods[i];
-        if (food->quantity > 0)
-            drawPlate(food->x, food->y, plateRadius, (int)food->quantity / 10, 0.8);
+        if (foods[i].quantity > 0)
+            drawPlate(foods[i].x, foods[i].y, plateRadius, (int)foods[i].quantity / 10, 0.8);
     }
 
     for (int i = 0; i < NUMBER_OF_ANTS; i++)
     {
-        struct Ant *ant = ants[i];
-        drawAnt(ant->x, ant->y, ant->direction, 0.1);
+        drawAnt(ants[i].x, ants[i].y, ants[i].direction, 0.1);
     }
 
     glFlush();
