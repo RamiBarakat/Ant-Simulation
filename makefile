@@ -1,10 +1,26 @@
-G = gcc -g
-O = -o
-names = main timer
-thread_args = -lpthread -lrt -lglut -lGLU -lGL -lm
+CC = gcc
+CFLAGS = -Wall -Wextra
+LDFLAGS = -lpthread -lrt -lglut -lGLU -lGL -lm
 
-files:
-	$(G) main.c $(O) main $(thread_args)
+TARGET = main
+SOURCES = main.c
+OBJECTS = $(SOURCES:.c=.o)
+
+.PHONY: all debug clean
+
+all: $(TARGET)
+
+debug: CFLAGS += -g -DDEBUG
+debug: $(TARGET)
+
+$(TARGET): $(OBJECTS)
+	@echo "Linking target: $(TARGET)"
+	@$(CC) $(CFLAGS) $(OBJECTS) $(LDFLAGS) -o $@
+
+%.o: %.c
+	@echo "Compiling file: $<"
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(names)
+	@echo "Cleaning..."
+	@rm -f $(OBJECTS) $(TARGET)

@@ -222,10 +222,12 @@ void moveAnt(struct Ant *ant)
 
 void *foodCreation(void *arg)
 {
+    /**/
 }
 
 void deleteThreads()
 {
+    /**/
 }
 
 /****************************************** OPENGL ************************************************/
@@ -444,7 +446,7 @@ void reshape(int width, int height)
     glMatrixMode(GL_MODELVIEW);
 }
 
-void update(int value)
+void update()
 {
     glutPostRedisplay();
     glutTimerFunc(16, update, 0);
