@@ -10,3 +10,4 @@ main
 
 # object files
 *.o
+main.o
